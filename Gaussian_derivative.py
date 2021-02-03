@@ -115,6 +115,7 @@ def gaussian_derivative(image,sigma,i_order,j_order):
     return out_image
 
 # test on normally distributed data
+"""
 test_img = np.random.normal(0,1,[100,100])
 plt.figure(0)
 plt.imshow(test_img)
@@ -123,7 +124,68 @@ test_img = gaussian_derivative(test_img,2,0,2)
 plt.figure(1)
 plt.imshow(test_img)
 plt.show()
+"""
+def norm_derivative(image, sigma, order = 1):
+    R = image[:, :, 0]
+    G = image[:, :, 1]
+    B = image[:, :, 2]
+    
+    if order == 1:
+        Rx = gaussian_derivative(R, sigma, order, 0)
+        Ry = gaussian_derivative(R, sigma, 0, order)
+        Rw = np.sqrt(Rx ** 2 + Ry ** 2)
 
+        Gx = gaussian_derivative(G, sigma, order, 0)
+        Gy = gaussian_derivative(G, sigma, 0, order)
+        Gw = np.sqrt(Gx ** 2 + Gy ** 2)
+
+        Bx = gaussian_derivative(B, sigma, order, 0)
+        By = gaussian_derivative(B, sigma, 0, order)
+        Bw = np.sqrt(Bx ** 2 + By ** 2)
+
+    elif order == 2:
+        Rx = gaussian_derivative(R, sigma, order, 0)
+        Ry = gaussian_derivative(R, sigma, 0, order)
+        Rxy = gaussian_derivative(R, sigma, order // 2, order // 2)
+        Rw = np.sqrt(Rx ** 2 + Ry ** 2 + 4 * Rxy ** 2)
+
+        Gx = gaussian_derivative(G, sigma, order, 0)
+        Gy = gaussian_derivative(G, sigma, 0, order)
+        Gxy = gaussian_derivative(G, sigma, order // 2, order // 2)
+        Gw = np.sqrt(Gx ** 2 + Gy ** 2 + 4 * Gxy ** 2)
+
+        Bx = gaussian_derivative(B, sigma, order, 0)
+        By = gaussian_derivative(B, sigma, 0, order)
+        Bxy = gaussian_derivative(B, sigma, order // 2, order // 2)
+        Bw = np.sqrt(Bx ** 2 + By ** 2 + 4 * Bxy ** 2)
+
+    return Rw, Gw, Bw
+
+def set_border(image, width, method = 0):
+    y_height, x_height = image.shape
+    temp = np.ones((y_height, x_height))
+    y, x = np.meshgrid(np.arange(0, y_height), np.arange(0, x_height))
+    temp = temp * ((x < (x_height - width)) * (x > width))
+    temp = temp * ((y < (y_height - width)) * (y > width))
+    out = temp * image
+
+    if method == 1:
+        out = out + (np.sum(out) / np.sum(temp)) * (np.ones((y_height, x_height)) - temp)
+
+    return out
+
+test_img = np.random.normal(100,7,[20,20])
+plt.figure(0)
+plt.imshow(test_img)
+
+test_img1 = set_border(test_img, 3, 0)
+test_img2 = set_border(test_img, 3, 1)
+print(test_img2.shape)
+plt.figure(1)
+plt.imshow(test_img1)
+plt.figure(2)
+plt.imshow(test_img2)
+plt.show()
 
 def general_color_constancy(image, gaussian_differentiation=0,sigma = 1,minkowski_norm=0, mask_image=0,saturation_threshold=255):
 
