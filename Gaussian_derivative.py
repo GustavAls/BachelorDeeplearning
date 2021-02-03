@@ -113,7 +113,7 @@ def gaussian_derivative(image,sigma,i_order,j_order):
     gaussian = np.transpose(np.vstack((gaussian, np.zeros((len(gaussian)-1,len(gaussian))))))
     out_image = signal.convolve2d(gaussian,out_image,mode = 'valid')
     return out_image
-"""
+
 # test on normally distributed data
 test_img = np.random.normal(0,1,[100,100])
 plt.figure(0)
@@ -123,7 +123,7 @@ test_img = gaussian_derivative(test_img,2,0,2)
 plt.figure(1)
 plt.imshow(test_img)
 plt.show()
-"""
+
 
 def general_color_constancy(image, gaussian_differentiation=0,sigma = 1,minkowski_norm=0, mask_image=0,saturation_threshold=255):
 
