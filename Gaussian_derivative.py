@@ -5,19 +5,28 @@ from scipy import signal
 plt.close('all')
 
 def dilation33(image):
-    # Makes a 3 by 3 dilation of the a 2D image, program crashes if not provided as such
+    # Makes a 3 by 3 dilation of the a 2d image, program crashes if not provided as such
     y_height, x_height = image.shape
-    out_image = np.zeros(y_height,x_height,3)
-    out_image[:,:,0] = np.vstack(image[1:],image[-1])
+    out_image = np.zeros((y_height,x_height,3))
+
+    out_image[:,:,0] = np.row_stack((image[1:,:],image[-1,:]))
     out_image[:,:,1] = image
-    out_image[:,:,2] = np.vstack(image[0],image[0:y_height-1])
+    out_image[:,:,2] = np.row_stack((image[0,:],image[:(y_height-1),:]))
 
     out_image2 = np.max(out_image, axis= 2)
-    out_image[:,:,0] = np.concatenate([image[:,1:],image[:,-1]],axis = 1)
+    out_image[:,:,0] = np.column_stack(([image[:,1:],image[:,-1]]))
     out_image[:,:,1] = out_image2
-    out_image[:,:,2] = np.concatenate([image[:,0],image[:,0:(x_height-1)]],axis = 1)
+    out_image[:,:,2] = np.column_stack(([image[:,0],image[:,0:(x_height-1)]]))
     out_image = np.max(out_image, axis=2)
     return out_image
+
+test = np.random.normal(100,7, (50,50))
+plt.figure(0)
+plt.imshow(test)
+test = dilation33(test)
+plt.figure(1)
+plt.imshow(test)
+plt.show()
 
 
 
