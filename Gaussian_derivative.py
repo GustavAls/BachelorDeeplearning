@@ -1,5 +1,4 @@
 import numpy as np
-import cv2
 from PIL import Image
 import matplotlib.pyplot as plt
 from scipy import signal
@@ -187,15 +186,18 @@ plt.figure(2)
 plt.imshow(test_img2)
 plt.show()
 
-def general_color_constancy(image, gaussian_differentiation=0,sigma = 1,minkowski_norm=0, mask_image=0,saturation_threshold=255):
+def general_color_constancy(image, gaussian_differentiation = 0, minkowski_norm = 1, sigma = 1, mask_image = 0):
 
     y_height, x_height, dimension = image.shape
-    if mask_image==0: mask_image = np.zeros((y_height,x_height))
-    mask_image2 = mask_image + (dilation33(np.max(image,axis=2))>=saturation_threshold).astype(int)
+    if mask_image == 0:
+        mask_image = np.zeros((y_height,x_height))
+
+    #Removing saturated points
+    saturation_threshold = 255
+    mask_image2 = mask_image + (dilation33(np.max(image, axis=2)) >= saturation_threshold).astype(int)
     mask_image2 = (mask_image2 == 0).astype(int)
 
-    # TODO wright set border
-    mask_image2 = set_border(mask_image2,sigma +1)
+    mask_image2 = set_border(mask_image2, sigma + 1)
 
     out_image = image
 
@@ -204,13 +206,45 @@ def general_color_constancy(image, gaussian_differentiation=0,sigma = 1,minkowsk
             for i in range(3):
                 image[:,:,i] = gaussian_derivative(image,sigma, 0, 0)
     elif gaussian_differentiation > 0:
-        # TODO wright norm_derivative
-        Rx, Gx,Bx = norm_derivative(image, sigma, gaussian_differentiation)
+        Rx, Gx, Bx = norm_derivative(image, sigma, gaussian_differentiation)
         image[:,:,0] = Rx
         Image[:,:,1] = Gx
         Image[:,:,2] = Bx
 
     image = np.abs(image)
+
+    if minkowski_norm != -1: #Minkowski norm = (1, infinity [
+        kleur = np.power(image, minkowski_norm)
+        white_R = np.power(np.sum(kleur[:, :, 0] * mask_image2), 1/minkowski_norm)
+        white_G = np.power(np.sum(kleur[:, :, 1] * mask_image2), 1/minkowski_norm)
+        white_B = np.power(np.sum(kleur[:, :, 2] * mask_image2), 1/minkowski_norm)
+
+        som = np.sqrt(white_R ** 2 + white_G ** 2 + white_B ** 2)
+
+        white_R = white_R / som
+        white_G = white_G / som
+        white_B = white_B / som
+
+    else: #Minkowski norm is infinite, hence the max algorithm is applied
+        R = image[:, :, 0]
+        G = image[:, :, 1]
+        B = image[:, :, 2]
+
+        white_R = np.max(R * mask_image2)
+        white_G = np.max(G * mask_image2)
+        white_B = np.max(B * mask_image2)
+
+        som = np.sqrt(white_R ** 2 + white_G ** 2 + white_B ** 2)
+
+        white_R = white_R / som
+        white_G = white_G / som
+        white_B = white_B / som
+
+    out_image[:, :, 0] = out_image[:, :, 0] / (white_R * np.sqrt(3))
+    out_image[:, :, 1] = out_image[:, :, 1] / (white_G * np.sqrt(3))
+    out_image[:, :, 2] = out_image[:, :, 2] / (white_B * np.sqrt(3))
+
+    return white_R, white_G, white_B, out_image
 
 
 
