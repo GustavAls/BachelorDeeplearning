@@ -171,7 +171,7 @@ def general_color_constancy(image, gaussian_differentiation=0, minkowski_norm=5,
 
     mask_image2 = set_border(mask_image2, sigma + 1)
 
-    out_image = np.ndarray.copy(image)
+    out_image = np.ndarray.copy(image).astype(int)
 
     if gaussian_differentiation == 0:
         if sigma != 0:
@@ -211,21 +211,12 @@ def general_color_constancy(image, gaussian_differentiation=0, minkowski_norm=5,
         white_G = white_G / som
         white_B = white_B / som
 
-    white_R_coef = white_R * np.sqrt(3.0)
-    white_G_coef = white_G * np.sqrt(3.0)
-    white_B_coef = white_B * np.sqrt(3.0)
+    out_image[:, :, 0] = out_image[:, :, 0] / (white_R * np.sqrt(3.0))
+    out_image[:, :, 1] = out_image[:, :, 1] / (white_G * np.sqrt(3.0))
+    out_image[:, :, 2] = out_image[:, :, 2] / (white_B * np.sqrt(3.0))
 
-    #Handles problem with overflowing pixel values when the coefficients are below 1
-    if white_R_coef <= 1.0:
-        white_R_coef = 1
-    if white_G_coef <= 1.0:
-        white_G_coef = 1
-    if white_B_coef <= 1.0:
-        white_B_coef = 1
-
-    out_image[:, :, 0] = out_image[:, :, 0] / white_R_coef
-    out_image[:, :, 1] = out_image[:, :, 1] / white_G_coef
-    out_image[:, :, 2] = out_image[:, :, 2] / white_B_coef
+    #Makes sure there is no overflow
+    out_image[out_image >= 255] = 255
 
     return white_R, white_G, white_B, out_image
 
@@ -234,7 +225,7 @@ test_img = cv2.imread(r'C:\Users\Bruger\Pictures\building1.jpg', 1)
 im_rgb = cv2.cvtColor(test_img, cv2.COLOR_BGR2RGB)
 
 
-R, G, B, test_img1 = general_color_constancy(im_rgb, gaussian_differentiation=1, minkowski_norm=5, sigma=1)
+R, G, B, test_img1 = general_color_constancy(im_rgb, gaussian_differentiation=0, minkowski_norm=6, sigma=0)
 
 
 fig = plt.figure(figsize=(9,12))
@@ -242,7 +233,7 @@ fig.add_subplot(1,2,1)
 plt.imshow(im_rgb)
 
 fig.add_subplot(1,2,2)
-plt.imshow(test_img1.astype('uint8'))
+plt.imshow(test_img1)
 
 plt.show()
 
