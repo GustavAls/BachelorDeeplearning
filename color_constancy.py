@@ -8,27 +8,20 @@ plt.close('all')
 def dilation33(image):
     # Makes a 3 by 3 dilation of the a 2d image, program crashes if not provided as such
     y_height, x_height = image.shape
-    out_image = np.zeros((y_height,x_height,3))
+    out_image = np.zeros((y_height, x_height, 3))
 
-    out_image[:,:,0] = np.row_stack((image[1:,:],image[-1,:]))
-    out_image[:,:,1] = image
-    out_image[:,:,2] = np.row_stack((image[0,:],image[:(y_height-1),:]))
+    out_image[:, :, 0] = np.row_stack((image[1:, :], image[-1, :]))
+    out_image[:, :, 1] = image
+    out_image[:, :, 2] = np.row_stack((image[0, :], image[:(y_height-1), :]))
 
-    out_image2 = np.max(out_image, axis= 2)
-    out_image[:,:,0] = np.column_stack(([image[:,1:],image[:,-1]]))
-    out_image[:,:,1] = out_image2
-    out_image[:,:,2] = np.column_stack(([image[:,0],image[:,0:(x_height-1)]]))
+    out_image2 = np.max(out_image, axis=2)
+    out_image[:, :, 0] = np.column_stack(([out_image2[:, 1:], out_image2[:, -1]]))
+    out_image[:, :, 1] = out_image2
+    out_image[:, :, 2] = np.column_stack(([out_image2[:, 0], out_image2[:, 0:(x_height-1)]]))
     out_image = np.max(out_image, axis=2)
     return out_image
-"""
-test = np.random.normal(100,7, (50,50))
-plt.figure(0)
-plt.imshow(test)
-test = dilation33(test)
-plt.figure(1)
-plt.imshow(test)
-plt.show()
-"""
+
+
 def fill_border(image, border_width):
     dimension = 1
     if len(image.shape) == 2:
@@ -71,16 +64,6 @@ def fill_border(image, border_width):
     return out_image
 
 
-""" Test of function on normal distributed data
-test_im2 = np.random.normal(100,7,(50,50))
-plt.figure()
-plt.imshow(test_im2)
-fill_border_test = fill_border(test_im2,3)
-plt.figure()
-plt.imshow(fill_border_test)
-plt.show()
-"""
-
 
 def gaussian_derivative(image, sigma, i_order, j_order):
     # Calculates the Gaussian derivative of the i'th order and of the j'th order along the second axis
@@ -90,7 +73,6 @@ def gaussian_derivative(image, sigma, i_order, j_order):
     image = fill_border(image, filter_size)
     x = np.asarray([i for i in range(-filter_size, filter_size+1)])
     gaussian_distribution = 1/(np.sqrt(2*np.pi)*sigma)*np.exp((x**2)/(-2*sigma**2))
-#   Gauss=1/(sqrt(2 * pi) * sigma)* exp((x.^2)/(-2 * sigma * sigma) );
     # first making the gaussian in convolution in the x direction
     if i_order == 0:
         gaussian = gaussian_distribution/np.sum(gaussian_distribution)
@@ -101,7 +83,7 @@ def gaussian_derivative(image, sigma, i_order, j_order):
         gaussian = (x**2/sigma**4-1/sigma**2)*gaussian_distribution
         gaussian = gaussian - sum(gaussian)/(len(x)) #shape of x may also be used but has only one dimension
         gaussian = gaussian/np.sum(0.5*x*x*gaussian)
-    out_image = np.apply_along_axis(lambda m: signal.convolve(m, gaussian, mode='valid'), axis=1, arr=image)
+    out_image = np.apply_along_axis(lambda m: signal.convolve(m, gaussian, mode='valid'), axis=0, arr=image)
 
     # subsequently in the y direction
     if j_order == 0:
@@ -113,20 +95,18 @@ def gaussian_derivative(image, sigma, i_order, j_order):
         gaussian = (x ** 2 / sigma ** 4 - 1 / sigma ** 2) * gaussian_distribution
         gaussian = gaussian - np.sum(gaussian) / (len(x))  # shape of x may also be used but has only one dimension
         gaussian = gaussian / np.sum(0.5 * x * x * gaussian)
-    out_image = np.apply_along_axis(lambda m: signal.convolve(m, gaussian, mode='valid'), axis=0, arr=out_image)
+    out_image = np.apply_along_axis(lambda m: signal.convolve(m, gaussian, mode='valid'), axis=1, arr=out_image)
     return out_image
 
-# test on normally distributed data
-"""
-test_img = np.random.normal(0,1,[100,100])
-plt.figure(0)
-plt.imshow(test_img)
+# m = np.array((255,100,100,255),(255,100,100,255),(255,100,100,255),(255,100,100,255))
+# n = np.zeros((4,4,3))
+# n[:,:,0] = m
+# n[:,:,1] = m/2
+# n[:,:,2] = m/3
 
-test_img = gaussian_derivative(test_img,2,0,2)
-plt.figure(1)
-plt.imshow(test_img)
-plt.show()
-"""
+
+
+
 def norm_derivative(image, sigma, order = 1):
     R = image[:, :, 0]
     G = image[:, :, 1]
@@ -166,9 +146,9 @@ def norm_derivative(image, sigma, order = 1):
 def set_border(image, width, method = 0):
     y_height, x_height = image.shape
     temp = np.ones((y_height, x_height))
-    y, x = np.meshgrid(np.arange(0, y_height), np.arange(0, x_height), indexing='ij')
-    temp = temp * ((x < (x_height - width)) * (x > width))
-    temp = temp * ((y < (y_height - width)) * (y > width))
+    y, x = np.meshgrid(np.arange(1, y_height+1), np.arange(1, x_height+1), indexing='ij')
+    temp = temp * ((x < (x_height - width + 1)) * (x > width))
+    temp = temp * ((y < (y_height - width + 1)) * (y > width))
     out = temp * image
 
     if method == 1:
@@ -177,39 +157,40 @@ def set_border(image, width, method = 0):
     return out
 
 
-def general_color_constancy(image, gaussian_differentiation=0, minkowski_norm=1, sigma=1, mask_image=0):
+def general_color_constancy(image, gaussian_differentiation=0, minkowski_norm=5, sigma=1, mask_image=0):
 
     y_height, x_height, dimension = image.shape
     if mask_image == 0:
-        mask_image = np.zeros((y_height,x_height))
+        mask_image = np.zeros((y_height, x_height))
 
     #Removing saturated points
     saturation_threshold = 255
-    mask_image2 = mask_image + (dilation33(np.max(image, axis=2)) >= saturation_threshold).astype(int)
-    mask_image2 = (mask_image2 == 0).astype(int)
+
+    mask_image2 = mask_image + (dilation33(np.max(image, axis=2)) >= saturation_threshold)
+    mask_image2 = (mask_image2 == 0)
 
     mask_image2 = set_border(mask_image2, sigma + 1)
 
-    out_image = np.copy(image)
+    out_image = np.ndarray.copy(image)
 
     if gaussian_differentiation == 0:
         if sigma != 0:
             image = gaussian_derivative(image, sigma, 0, 0)
     elif gaussian_differentiation > 0:
         Rx, Gx, Bx = norm_derivative(image, sigma, gaussian_differentiation)
-        image[:, :, 0] = Rx
-        image[:, :, 1] = Gx
-        image[:, :, 2] = Bx
+        out_image[:, :, 0] = Rx
+        out_image[:, :, 1] = Gx
+        out_image[:, :, 2] = Bx
 
-    image = np.abs(image)
+    image = np.fabs(image)
 
     if minkowski_norm != -1: #Minkowski norm = (1, infinity [
-        kleur = np.power(image, minkowski_norm)
-        white_R = np.power(np.sum(kleur[:, :, 0] * mask_image2), 1/minkowski_norm)
-        white_G = np.power(np.sum(kleur[:, :, 1] * mask_image2), 1/minkowski_norm)
-        white_B = np.power(np.sum(kleur[:, :, 2] * mask_image2), 1/minkowski_norm)
+        kleur = np.float_power(image, minkowski_norm)
+        white_R = np.float_power(np.sum(kleur[:, :, 0] * mask_image2), (1/minkowski_norm))
+        white_G = np.float_power(np.sum(kleur[:, :, 1] * mask_image2), (1/minkowski_norm))
+        white_B = np.float_power(np.sum(kleur[:, :, 2] * mask_image2), (1/minkowski_norm))
 
-        som = np.sqrt(white_R ** 2 + white_G ** 2 + white_B ** 2)
+        som = np.sqrt(white_R ** 2.0 + white_G ** 2.0 + white_B ** 2.0)
 
         white_R = white_R / som
         white_G = white_G / som
@@ -229,35 +210,42 @@ def general_color_constancy(image, gaussian_differentiation=0, minkowski_norm=1,
         white_R = white_R / som
         white_G = white_G / som
         white_B = white_B / som
-    out_image[:, :, 0] = out_image[:, :, 0] / (white_R * np.sqrt(3))
-    out_image[:, :, 1] = out_image[:, :, 1] / (white_G * np.sqrt(3))
-    out_image[:, :, 2] = out_image[:, :, 2] / (white_B * np.sqrt(3))
+
+    white_R_coef = white_R * np.sqrt(3.0)
+    white_G_coef = white_G * np.sqrt(3.0)
+    white_B_coef = white_B * np.sqrt(3.0)
+
+    #Handles problem with overflowing pixel values when the coefficients are below 1
+    if white_R_coef <= 1.0:
+        white_R_coef = 1
+    if white_G_coef <= 1.0:
+        white_G_coef = 1
+    if white_B_coef <= 1.0:
+        white_B_coef = 1
+
+    out_image[:, :, 0] = out_image[:, :, 0] / white_R_coef
+    out_image[:, :, 1] = out_image[:, :, 1] / white_G_coef
+    out_image[:, :, 2] = out_image[:, :, 2] / white_B_coef
 
     return white_R, white_G, white_B, out_image
 
 
+test_img = cv2.imread(r'C:\Users\Bruger\Pictures\building1.jpg', 1)
+im_rgb = cv2.cvtColor(test_img, cv2.COLOR_BGR2RGB)
 
 
+R, G, B, test_img1 = general_color_constancy(im_rgb, gaussian_differentiation=1, minkowski_norm=5, sigma=1)
 
 
+fig = plt.figure(figsize=(9,12))
+fig.add_subplot(1,2,1)
+plt.imshow(im_rgb)
 
-#
-# #test_img = np.random.normal(100, 20, size=(20, 20, 3))
-# test_img = cv2.imread(r'C:\Users\Bruger\Pictures\melanomasTest.jpg', 1)
-#
-#
-# plt.figure(0)
-# #im = Image.fromarray(test_img.astype('uint8')).convert('RGB')
-# im_rgb = cv2.cvtColor(test_img, cv2.COLOR_BGR2RGB)
-# plt.imshow(im_rgb)
-#
-#
-# R, G, B, test_img1 = general_color_constancy(im_rgb, gaussian_differentiation=1, minkowski_norm=3, sigma=5)
-# plt.figure(1)
-# im1 = Image.fromarray(test_img1.astype('uint8')).convert('RGB')
-# plt.imshow(im1)
-#
-# plt.show()
+fig.add_subplot(1,2,2)
+plt.imshow(test_img1.astype('uint8'))
+
+plt.show()
+
 
 
 
