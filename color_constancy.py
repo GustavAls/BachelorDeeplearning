@@ -241,24 +241,24 @@ def general_color_constancy(image, gaussian_differentiation=0, minkowski_norm=1,
 
 
 
-"""
-#test_img = np.random.normal(100, 20, size=(20, 20, 3))
-test_img = cv2.imread(r'C:\Users\Bruger\Pictures\melanomasTest.jpg', 1)
+#
+# #test_img = np.random.normal(100, 20, size=(20, 20, 3))
+# test_img = cv2.imread(r'C:\Users\Bruger\Pictures\melanomasTest.jpg', 1)
+#
+#
+# plt.figure(0)
+# #im = Image.fromarray(test_img.astype('uint8')).convert('RGB')
+# im_rgb = cv2.cvtColor(test_img, cv2.COLOR_BGR2RGB)
+# plt.imshow(im_rgb)
+#
+#
+# R, G, B, test_img1 = general_color_constancy(im_rgb, gaussian_differentiation=1, minkowski_norm=3, sigma=5)
+# plt.figure(1)
+# im1 = Image.fromarray(test_img1.astype('uint8')).convert('RGB')
+# plt.imshow(im1)
+#
+# plt.show()
 
 
-plt.figure(0)
-#im = Image.fromarray(test_img.astype('uint8')).convert('RGB')
-im_rgb = cv2.cvtColor(test_img, cv2.COLOR_BGR2RGB)
-plt.imshow(im_rgb)
-
-
-R, G, B, test_img1 = general_color_constancy(im_rgb, gaussian_differentiation=1, minkowski_norm=3, sigma=5)
-plt.figure(1)
-im1 = Image.fromarray(test_img1.astype('uint8')).convert('RGB')
-plt.imshow(im1)
-
-plt.show()
-
-"""
 
 
