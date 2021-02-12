@@ -8,8 +8,12 @@ from scipy import ndimage, signal
 import heapq
 import color_constancy as cc
 import os
+import time
 
 plt.close('all')
+
+
+time_zero = time.time()
 width = 600
 height = 450
 preserve_size = 600
@@ -21,7 +25,7 @@ margin = 0.1
 crop_black = True
 threshold = 0.3
 resize = False
-use_color_constancy = False
+use_color_constancy = True
 write_to_png = False
 write = True
 ind = 1
@@ -30,7 +34,7 @@ all_width = 0
 use_cropping = False
 errors = []
 for i, j in enumerate(os.listdir(paths[0])):
-    if i == 0:
+    if j!= 'return':
         try:
             image = cv2.imread(paths[0]+j)
             print("yes man")
@@ -40,6 +44,7 @@ for i, j in enumerate(os.listdir(paths[0])):
             continue
         print("hej")
         print(j)
+
         if crop_black:
 
             gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -68,7 +73,8 @@ for i, j in enumerate(os.listdir(paths[0])):
 
             if x_min < 0 or x_max > image.shape[1] or y_min < 0 or y_max > image.shape[0]:
                 if len(blob_features) > 1:
-                    without_largest = blob_features[np.arange(len(blob_features)) != largest_blob_idx]
+                    indices = np.where(np.arange(len(blob_features)) != largest_blob_idx)[0].astype(int)
+                    without_largest = [blob_features[idx] for idx in indices]
                     second_largest_idx = np.argmax(
                         np.asarray([without_largest[i].area for i in range(len(without_largest))]))
                     second_largest = without_largest[second_largest_idx]
@@ -127,3 +133,7 @@ for i, j in enumerate(os.listdir(paths[0])):
                     im = Image.fromarray(new_image.astype('uint8')).convert('RGB')
                     im.save(return_folder + j)
             if i % 1000: print(i)
+
+time_one = time.time()
+
+print(time_one-time_zero)
