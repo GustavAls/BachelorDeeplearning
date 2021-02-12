@@ -3,6 +3,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import cv2
 from scipy import signal
+from scipy import ndimage
 plt.close('all')
 
 def dilation33(image):
@@ -65,37 +66,55 @@ def fill_border(image, border_width):
 
 
 
-def gaussian_derivative(image, sigma, i_order, j_order):
+def gaussian_derivative(image, sigma, i_order, j_order,build_in = True):
     # Calculates the Gaussian derivative of the i'th order and of the j'th order along the second axis
 
     maximum_sigma = float(3)
     filter_size = int(maximum_sigma*sigma+0.5)  # unclear as to the point of this
-    image = fill_border(image, filter_size)
+
+
+
     x = np.asarray([i for i in range(-filter_size, filter_size+1)])
     gaussian_distribution = 1/(np.sqrt(2*np.pi)*sigma)*np.exp((x**2)/(-2*sigma**2))
     # first making the gaussian in convolution in the x direction
-    if i_order == 0:
-        gaussian = gaussian_distribution/np.sum(gaussian_distribution)
-    elif i_order == 1:
-        gaussian = -(x/sigma**2)*gaussian_distribution
-        gaussian = gaussian/(np.sum(x*gaussian))
-    elif i_order == 2:
-        gaussian = (x**2/sigma**4-1/sigma**2)*gaussian_distribution
-        gaussian = gaussian - sum(gaussian)/(len(x)) #shape of x may also be used but has only one dimension
-        gaussian = gaussian/np.sum(0.5*x*x*gaussian)
-    out_image = np.apply_along_axis(lambda m: signal.convolve(m, gaussian, mode='valid'), axis=0, arr=image)
+    if not build_in:
+        image = fill_border(image, filter_size)
+        if i_order == 0:
+            gaussian = gaussian_distribution/np.sum(gaussian_distribution)
+        elif i_order == 1:
+            gaussian = -(x/sigma**2)*gaussian_distribution
+            gaussian = gaussian/(np.sum(x*gaussian))
+        elif i_order == 2:
+            gaussian = (x**2/sigma**4-1/sigma**2)*gaussian_distribution
+            gaussian = gaussian - sum(gaussian)/(len(x)) #shape of x may also be used but has only one dimension
+            gaussian = gaussian/np.sum(0.5*x*x*gaussian)
+        out_image = np.apply_along_axis(lambda m: signal.convolve(m, gaussian, mode='valid'), axis=0, arr=image)
 
-    # subsequently in the y direction
-    if j_order == 0:
-        gaussian = gaussian_distribution / np.sum(gaussian_distribution)
-    elif j_order == 1:
-        gaussian = -(x / sigma ** 2) * gaussian_distribution
-        gaussian = gaussian / (np.sum(x * gaussian))
-    elif j_order == 2:
-        gaussian = (x ** 2 / sigma ** 4 - 1 / sigma ** 2) * gaussian_distribution
-        gaussian = gaussian - np.sum(gaussian) / (len(x))  # shape of x may also be used but has only one dimension
-        gaussian = gaussian / np.sum(0.5 * x * x * gaussian)
-    out_image = np.apply_along_axis(lambda m: signal.convolve(m, gaussian, mode='valid'), axis=1, arr=out_image)
+        # subsequently in the y direction
+        if j_order == 0:
+            gaussian = gaussian_distribution / np.sum(gaussian_distribution)
+        elif j_order == 1:
+            gaussian = -(x / sigma ** 2) * gaussian_distribution
+            gaussian = gaussian / (np.sum(x * gaussian))
+        elif j_order == 2:
+            gaussian = (x ** 2 / sigma ** 4 - 1 / sigma ** 2) * gaussian_distribution
+            gaussian = gaussian - np.sum(gaussian) / (len(x))  # shape of x may also be used but has only one dimension
+            gaussian = gaussian / np.sum(0.5 * x * x * gaussian)
+        out_image = np.apply_along_axis(lambda m: signal.convolve(m, gaussian, mode='valid'), axis=1, arr=out_image)
+    else:
+        if i_order == 0:
+            out_image = ndimage.gaussian_filter1d(image, sigma, axis = 0,mode = 'reflect')
+        if i_order == 1:
+            out_image = ndimage.gaussian_filter1d(image,sigma, axis = 0, order = 1, mode = 'reflect')
+        if i_order ==2:
+            out_image = ndimage.gaussian_filter1d(image,sigma, axis = 0, order = 2, mode= 'reflect')
+
+        if j_order == 0:
+            out_image = ndimage.gaussian_filter1d(image, sigma, axis=1, mode='reflect')
+        if j_order == 1:
+            out_image = ndimage.gaussian_filter1d(image, sigma, axis=1, order=1, mode='reflect')
+        if j_order == 2:
+            out_image = ndimage.gaussian_filter1d(image, sigma, axis=1, order=2, mode='reflect')
     return out_image
 
 # m = np.array((255,100,100,255),(255,100,100,255),(255,100,100,255),(255,100,100,255))
@@ -107,38 +126,38 @@ def gaussian_derivative(image, sigma, i_order, j_order):
 
 
 
-def norm_derivative(image, sigma, order = 1):
+def norm_derivative(image, sigma, order = 1, build_ind = True):
     R = image[:, :, 0]
     G = image[:, :, 1]
     B = image[:, :, 2]
-    
+
     if order == 1:
-        Rx = gaussian_derivative(R, sigma, order, 0)
-        Ry = gaussian_derivative(R, sigma, 0, order)
+        Rx = gaussian_derivative(R, sigma, order, 0,build_ind)
+        Ry = gaussian_derivative(R, sigma, 0, order,build_ind)
         Rw = np.sqrt(Rx ** 2 + Ry ** 2)
 
-        Gx = gaussian_derivative(G, sigma, order, 0)
-        Gy = gaussian_derivative(G, sigma, 0, order)
+        Gx = gaussian_derivative(G, sigma, order, 0,build_ind)
+        Gy = gaussian_derivative(G, sigma, 0, order,build_ind)
         Gw = np.sqrt(Gx ** 2 + Gy ** 2)
 
-        Bx = gaussian_derivative(B, sigma, order, 0)
-        By = gaussian_derivative(B, sigma, 0, order)
+        Bx = gaussian_derivative(B, sigma, order, 0,build_ind)
+        By = gaussian_derivative(B, sigma, 0, order,build_ind)
         Bw = np.sqrt(Bx ** 2 + By ** 2)
 
     elif order == 2:
-        Rx = gaussian_derivative(R, sigma, order, 0)
-        Ry = gaussian_derivative(R, sigma, 0, order)
-        Rxy = gaussian_derivative(R, sigma, order // 2, order // 2)
+        Rx = gaussian_derivative(R, sigma, order, 0,build_ind)
+        Ry = gaussian_derivative(R, sigma, 0, order,build_ind)
+        Rxy = gaussian_derivative(R, sigma, order // 2, order // 2,build_ind)
         Rw = np.sqrt(Rx ** 2 + Ry ** 2 + 4 * Rxy ** 2)
 
-        Gx = gaussian_derivative(G, sigma, order, 0)
-        Gy = gaussian_derivative(G, sigma, 0, order)
-        Gxy = gaussian_derivative(G, sigma, order // 2, order // 2)
+        Gx = gaussian_derivative(G, sigma, order, 0,build_ind)
+        Gy = gaussian_derivative(G, sigma, 0, order,build_ind)
+        Gxy = gaussian_derivative(G, sigma, order // 2, order // 2,build_ind)
         Gw = np.sqrt(Gx ** 2 + Gy ** 2 + 4 * Gxy ** 2)
 
-        Bx = gaussian_derivative(B, sigma, order, 0)
-        By = gaussian_derivative(B, sigma, 0, order)
-        Bxy = gaussian_derivative(B, sigma, order // 2, order // 2)
+        Bx = gaussian_derivative(B, sigma, order, 0,build_ind)
+        By = gaussian_derivative(B, sigma, 0, order,build_ind)
+        Bxy = gaussian_derivative(B, sigma, order // 2, order // 2,build_ind)
         Bw = np.sqrt(Bx ** 2 + By ** 2 + 4 * Bxy ** 2)
 
     return Rw, Gw, Bw
@@ -221,11 +240,11 @@ def general_color_constancy(image, gaussian_differentiation=0, minkowski_norm=5,
     return white_R, white_G, white_B, out_image
 
 
-test_img = cv2.imread(r'C:\Users\Bruger\Pictures\building1.jpg', 1)
+test_img = cv2.imread(r'C:\Users\ptrkm\OneDrive\Dokumenter\TestFolder\ISIC_0000001.jpg', 1)
 im_rgb = cv2.cvtColor(test_img, cv2.COLOR_BGR2RGB)
+imtest = np.random.normal(100,10, (250,250,3))
 
-
-R, G, B, test_img1 = general_color_constancy(im_rgb, gaussian_differentiation=0, minkowski_norm=6, sigma=0)
+R, G, B, test_img1 = general_color_constancy(imtest, gaussian_differentiation=1, minkowski_norm=5, sigma=2)
 
 
 fig = plt.figure(figsize=(9,12))
