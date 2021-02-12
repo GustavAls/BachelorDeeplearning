@@ -234,23 +234,23 @@ def general_color_constancy(image, gaussian_differentiation=0, minkowski_norm=5,
     out_image[out_image >= 255] = 255
 
     return white_R, white_G, white_B, out_image
-
-test_img = cv2.imread(r'C:\Users\Bruger\Pictures\building1.jpg', 1)
-# test_img = cv2.imread(r'C:\Users\ptrkm\OneDrive\Dokumenter\TestFolder\ISIC_0000001.jpg', 1)
-im_rgb = cv2.cvtColor(test_img, cv2.COLOR_BGR2RGB)
-# imtest = np.random.normal(100,10, (250,250,3))
-
-R, G, B, test_img1 = general_color_constancy(im_rgb, gaussian_differentiation=1, minkowski_norm=5, sigma=2)
-
-fig = plt.figure(figsize=(9,12))
-fig.add_subplot(1,2,1)
-plt.imshow(im_rgb)
-
-fig.add_subplot(1,2,2)
-plt.imshow(test_img1)
-
-plt.show()
-
+#
+# test_img = cv2.imread(r'C:\Users\Bruger\Pictures\building1.jpg', 1)
+# # test_img = cv2.imread(r'C:\Users\ptrkm\OneDrive\Dokumenter\TestFolder\ISIC_0000001.jpg', 1)
+# im_rgb = cv2.cvtColor(test_img, cv2.COLOR_BGR2RGB)
+# # imtest = np.random.normal(100,10, (250,250,3))
+#
+# R, G, B, test_img1 = general_color_constancy(im_rgb, gaussian_differentiation=1, minkowski_norm=5, sigma=2)
+#
+# fig = plt.figure(figsize=(9,12))
+# fig.add_subplot(1,2,1)
+# plt.imshow(im_rgb)
+#
+# fig.add_subplot(1,2,2)
+# plt.imshow(test_img1)
+#
+# plt.show()
+#
 
 
 

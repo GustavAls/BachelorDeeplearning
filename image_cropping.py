@@ -17,13 +17,16 @@ time_zero = time.time()
 width = 600
 height = 450
 preserve_size = 600
-paths = [r'C:\Users\ptrkm\OneDrive\Dokumenter\TestFolder\\']
-return_folder = r'C:\Users\ptrkm\OneDrive\Dokumenter\TestFolder\return\\'
+# paths = [r'C:\Users\ptrkm\OneDrive\Dokumenter\TestFolder\\']
+# return_folder = r'C:\Users\ptrkm\OneDrive\Dokumenter\TestFolder\return\\'
+paths = [r'C:\Users\Bruger\OneDrive\DTU - General engineering\6. Semester\Bachelor\ISBI2016_ISIC_Part2B_Training_Data\TestRunImages\\']
+return_folder = r'C:\Users\Bruger\OneDrive\DTU - General engineering\6. Semester\Bachelor\ISBI2016_ISIC_Part2B_Training_Data\TestRunImagesOutput\\'
 standard_size = np.asarray([height, width])
 preserve_ratio = True
 margin = 0.1
 crop_black = True
-threshold = 0.3
+k = 50
+threshold = 0.7
 resize = False
 use_color_constancy = True
 write_to_png = False
@@ -51,6 +54,11 @@ for i, j in enumerate(os.listdir(paths[0])):
             threshold_level = threshold_otsu(gray_image)
             gray_image = ndimage.gaussian_filter(gray_image, sigma=np.sqrt(2))
             binary_image = gray_image < threshold_level
+            n, m, _ = image.shape
+
+            if np.mean(binary_image[n//2-k//2:n//2+k//2,0:k]) > np.mean(binary_image[(n//2-k//2):n//2+k//2,(m//2-k//2):m//2+k//2]):
+                binary_image = gray_image > threshold_level
+
 
             # We now find features in the binarised blobs
 
@@ -66,13 +74,12 @@ for i, j in enumerate(os.listdir(paths[0])):
                 y_min = (largest_blob.centroid[0] - radius + margin * radius).astype(int)
                 y_max = (largest_blob.centroid[0] + radius - margin * radius).astype(int)
 
-
                 use_cropping = True
             else:
                 use_cropping = False
-
             if x_min < 0 or x_max > image.shape[1] or y_min < 0 or y_max > image.shape[0]:
                 if len(blob_features) > 1:
+
                     indices = np.where(np.arange(len(blob_features)) != largest_blob_idx)[0].astype(int)
                     without_largest = [blob_features[idx] for idx in indices]
                     second_largest_idx = np.argmax(
@@ -97,11 +104,6 @@ for i, j in enumerate(os.listdir(paths[0])):
                 mean_outside = (np.mean(image[:y_min,:,:])+np.mean(image[y_min:y_max,:x_min,:])+
                                 np.mean(image[y_max:,:,:])+np.mean(image[y_min:y_max,x_max:,:]))/4
 
-
-
-
-                if mean_outside / mean_inside < threshold:
-                    use_cropping = False
             if use_cropping:
                 image = image[y_min:y_max, x_min:x_max, :]
             if resize:
