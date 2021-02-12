@@ -17,15 +17,15 @@ time_zero = time.time()
 width = 600
 height = 450
 preserve_size = 600
-# paths = [r'C:\Users\ptrkm\OneDrive\Dokumenter\TestFolder\\']
-# return_folder = r'C:\Users\ptrkm\OneDrive\Dokumenter\TestFolder\return\\'
-paths = [r'C:\Users\Bruger\OneDrive\DTU - General engineering\6. Semester\Bachelor\ISBI2016_ISIC_Part2B_Training_Data\TestRunImages\\']
-return_folder = r'C:\Users\Bruger\OneDrive\DTU - General engineering\6. Semester\Bachelor\ISBI2016_ISIC_Part2B_Training_Data\TestRunImagesOutput\\'
+paths = [r'C:\Users\ptrkm\OneDrive\Dokumenter\TestFolder\\']
+return_folder = r'C:\Users\ptrkm\OneDrive\Dokumenter\TestFolder\return\\'
+# paths = [r'C:\Users\Bruger\OneDrive\DTU - General engineering\6. Semester\Bachelor\ISBI2016_ISIC_Part2B_Training_Data\TestRunImages\\']
+# return_folder = r'C:\Users\Bruger\OneDrive\DTU - General engineering\6. Semester\Bachelor\ISBI2016_ISIC_Part2B_Training_Data\TestRunImagesOutput\\'
 standard_size = np.asarray([height, width])
 preserve_ratio = True
 margin = 0.1
 crop_black = True
-k = 50
+k = 200
 threshold = 0.7
 resize = False
 use_color_constancy = True
@@ -36,7 +36,10 @@ all_heights = 0
 all_width = 0
 use_cropping = False
 errors = []
+area_threshold = 0.80
 for i, j in enumerate(os.listdir(paths[0])):
+    # if j == 'ISIC_0000006.jpg':
+
     if j!= 'return':
         try:
             image = cv2.imread(paths[0]+j)
@@ -56,10 +59,15 @@ for i, j in enumerate(os.listdir(paths[0])):
             binary_image = gray_image < threshold_level
             n, m, _ = image.shape
 
-            if np.mean(binary_image[n//2-k//2:n//2+k//2,0:k]) > np.mean(binary_image[(n//2-k//2):n//2+k//2,(m//2-k//2):m//2+k//2]):
+            mean_left = np.mean(image[n // 2 - k // 2:n // 2 + k // 2, :])
+            mean_right = np.mean(image[n // 2 - k // 2:n // 2 + k // 2, m-k:])
+            mean_top = np.mean(image[:,m // 2 - m // 2:m // 2 + k // 2])
+            mean_bottom = np.mean(image[n-k:,m // 2 - m // 2:m // 2 + k // 2])
+            mean_middle = np.mean(image[n // 2 - k:n // 2 + k,m // 2 - k:m // 2 + k])
+
+
+            if mean_middle > np.max([mean_left,mean_top]):
                 binary_image = gray_image > threshold_level
-
-
             # We now find features in the binarised blobs
 
             blob_labels = measure.label(binary_image)
@@ -73,12 +81,37 @@ for i, j in enumerate(os.listdir(paths[0])):
                 x_max = (largest_blob.centroid[1] + radius - margin * radius).astype(int)
                 y_min = (largest_blob.centroid[0] - radius + margin * radius).astype(int)
                 y_max = (largest_blob.centroid[0] + radius - margin * radius).astype(int)
-
                 use_cropping = True
             else:
                 use_cropping = False
             if x_min < 0 or x_max > image.shape[1] or y_min < 0 or y_max > image.shape[0]:
-                if len(blob_features) > 1:
+                x_center = largest_blob.centroid[1]
+                y_center = largest_blob.centroid[0]
+                radii = np.arange(0,radius,radius/20)
+                passed = False
+                for rad in radii:
+                    rad = rad.astype(int)
+                    x_min = (largest_blob.centroid[1] - rad + margin * rad).astype(int)
+                    x_max = (largest_blob.centroid[1] + rad - margin * rad).astype(int)
+                    y_min = (largest_blob.centroid[0] - rad + margin * rad).astype(int)
+                    y_max = (largest_blob.centroid[0] + rad - margin * rad).astype(int)
+
+                    if x_min < 0 or x_max > image.shape[1] or y_min < 0 or y_max > image.shape[0]:
+
+                        break
+
+                    area_coefficient = np.sum(binary_image[(y_center-rad).astype(int):(y_center + rad).astype(int),
+                                              (x_center-rad).astype(int):(x_center+rad).astype(int)])/largest_blob.area
+                    if area_coefficient >= area_threshold:
+                        passed = True
+                        radius = rad
+                        x_min = (largest_blob.centroid[1] - radius + margin * radius).astype(int)
+                        x_max = (largest_blob.centroid[1] + radius - margin * radius).astype(int)
+                        y_min = (largest_blob.centroid[0] - radius + margin * radius).astype(int)
+                        y_max = (largest_blob.centroid[0] + radius - margin * radius).astype(int)
+                        use_cropping = True
+
+                if len(blob_features) > 1 and not passed:
 
                     indices = np.where(np.arange(len(blob_features)) != largest_blob_idx)[0].astype(int)
                     without_largest = [blob_features[idx] for idx in indices]
@@ -94,9 +127,10 @@ for i, j in enumerate(os.listdir(paths[0])):
 
                     if x_min < 0 or x_max > image.shape[1] or y_min < 0 or y_max > image.shape[0]:
                         use_cropping = False
-                else:
-                    use_cropping = True
+            else:
+                use_cropping = True
             if use_cropping:
+
                 mean_inside = np.mean(image[y_min:y_max, x_min:x_max, :])
                 exclude_x = np.ones(image.shape[1],dtype=int)
                 exclude_y = np.ones(image.shape[0],dtype=int)
@@ -104,8 +138,13 @@ for i, j in enumerate(os.listdir(paths[0])):
                 mean_outside = (np.mean(image[:y_min,:,:])+np.mean(image[y_min:y_max,:x_min,:])+
                                 np.mean(image[y_max:,:,:])+np.mean(image[y_min:y_max,x_max:,:]))/4
 
+                if np.sum(binary_image)/(n*m)<0.05 or np.sum(binary_image)/(n*m)>0.95:
+                    use_cropping = False
+
+
             if use_cropping:
                 image = image[y_min:y_max, x_min:x_max, :]
+
             if resize:
                 if preserve_ratio:
                     if image.shape[0] > image.shape[1]:
@@ -133,7 +172,9 @@ for i, j in enumerate(os.listdir(paths[0])):
                     im.save(return_folder + j.name.replace('.jpg', '.png'))
                 else:
                     im = Image.fromarray(new_image.astype('uint8')).convert('RGB')
+
                     im.save(return_folder + j)
+
             if i % 1000: print(i)
 
 time_one = time.time()
