@@ -17,7 +17,7 @@ def init(mdlParams_):
     mdlParams['dataDir'] = mdlParams_['pathBase']+'/data/isic/2019'
 
     ### Model Selection ###
-    mdlParams['model_type'] = 'efficientnet-b0'
+    mdlParams['model_type'] = 'Resnet50'
     mdlParams['dataset_names'] = ['official']#,'sevenpoint_rez3_ll']
     mdlParams['file_ending'] = '.jpg'
     mdlParams['exclude_inds'] = False
@@ -72,6 +72,24 @@ def init(mdlParams_):
     mdlParams['shear'] = 10
     mdlParams['cutout'] = 16
 
+    # Meta settings
+    mdlParams['meta_features'] = ['age_num','sex_oh','loc_oh']
+    mdlParams['meta_feature_sizes'] = [1,8,2]
+    mdlParams['encode_nan'] = False
+    # Pretrained model from task 1
+    mdlParams['model_load_path'] = mdlParams_['pathBase']+'/data/isic/2019.test_effb0_ss'
+    mdlParams['fc_layers_before'] = [256,256]
+    # Factor for scaling up the FC layer
+    scale_up_with_larger_b = 1.0
+    mdlParams['fc_layers_after'] = [int(1024*scale_up_with_larger_b)]
+    mdlParams['freeze_cnn'] = True
+    mdlParams['learning_rate_meta'] = 0.00001
+    # each feature is set to missing with this prob
+    mdlParams['drop_augment'] = 0.1
+    # Normal dropout in fc layers
+    mdlParams['dropout_meta'] = 0.4
+    mdlParams['scale_features'] = True
+
     ### Data ###
     mdlParams['preload'] = False
     # Labels first
@@ -123,9 +141,59 @@ def init(mdlParams_):
                     else:
                         class_9 = int(float(row[9]))
                     mdlParams['labels_dict'][row[0]] = np.array([int(float(row[1])),int(float(row[2])),int(float(row[3])),int(float(row[4])),int(float(row[5])),int(float(row[6])),int(float(row[7])),class_8,class_9])
+    # Load meta data
+    mdlParams['meta_dict'] = {}
+    path1 = mdlParams['dataDir'] + '/meta_data/'
+     # All sets
+    allSets = glob(path1 + '*/')
+    # Go through all sets
+    for i in range(len(allSets)):
+        # Check if want to include this dataset
+        foundSet = False
+        for j in range(len(mdlParams['dataset_names'])):
+            if mdlParams['dataset_names'][j] in allSets[i]:
+                foundSet = True
+        if not foundSet:
+            continue
+        # Find csv file
+        files = sorted(glob(allSets[i]+'*'))
+        for j in range(len(files)):
+            if '.pkl' in files[j]:
+                break
+        # Open and load
+        with open(files[j],'rb') as f:
+            meta_data = pickle.load(f)
+        # Write into dict
+        for k in range(len(meta_data['im_name'])):
+            feature_vector = []
+            if 'age_oh' in mdlParams['meta_features']:
+                if mdlParams['encode_nan']:
+                    feature_vector.append(meta_data['age_oh'][k,:])
+                else:
+                    feature_vector.append(meta_data['age_oh'][k,1:])
+            if 'age_num' in mdlParams['meta_features']:
+                feature_vector.append(np.array([meta_data['age_num'][k]]))
+            if 'loc_oh' in mdlParams['meta_features']:
+                if mdlParams['encode_nan']:
+                    feature_vector.append(meta_data['loc_oh'][k,:])
+                else:
+                    feature_vector.append(meta_data['loc_oh'][k,1:])
+            if 'sex_oh' in mdlParams['meta_features']:
+                if mdlParams['encode_nan']:
+                    feature_vector.append(meta_data['sex_oh'][k,:])
+                else:
+                    feature_vector.append(meta_data['sex_oh'][k,1:])
+
+            #print(feature_vector)
+            feature_vector = np.concatenate(feature_vector,axis=0)
+            #print("feature vector shape",feature_vector.shape)
+            mdlParams['meta_dict'][meta_data['im_name'][k]] = feature_vector
+
+
     # Save all im paths here
     mdlParams['im_paths'] = []
     mdlParams['labels_list'] = []
+    mdlParams['meta_list'] = []
     # Define the sets
     path1 = mdlParams['dataDir'] + '/images/'
     # All sets
@@ -167,6 +235,7 @@ def init(mdlParams_):
                             print("Found already:",key,files[j])
                         mdlParams['key_list'].append(key)
                         mdlParams['labels_list'].append(mdlParams['labels_dict'][key])
+                        mdlParams['meta_list'].append(mdlParams['meta_dict'][key])
                         found_already = True
                 if found_already:
                     mdlParams['im_paths'].append(files[j])
@@ -177,6 +246,9 @@ def init(mdlParams_):
     # Convert label list to array
     mdlParams['labels_array'] = np.array(mdlParams['labels_list'])
     print(np.mean(mdlParams['labels_array'],axis=0))
+    # Meta data
+    mdlParams['meta_array'] = np.array(mdlParams['meta_list'])
+    print("final meta shape",mdlParams['meta_array'].shape)
     # Create indices list with HAM10000 only
     mdlParams['HAM10000_inds'] = []
     HAM_START = 24306

@@ -17,7 +17,7 @@ def init(mdlParams_):
     mdlParams['dataDir'] = mdlParams_['pathBase']+'/data/isic/2019'
 
     ### Model Selection ###
-    mdlParams['model_type'] = 'efficientnet-b0'
+    mdlParams['model_type'] = 'Resnet50'
     mdlParams['dataset_names'] = ['official']#,'sevenpoint_rez3_ll']
     mdlParams['file_ending'] = '.jpg'
     mdlParams['exclude_inds'] = False
