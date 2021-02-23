@@ -12,9 +12,9 @@ import imagesize
 def init(mdlParams_):
     mdlParams = {}
     # Save summaries and model here
-    mdlParams['saveDir'] = mdlParams_['pathBase']+'/data/isic/'
+    mdlParams['saveDir'] = mdlParams_['pathBase']+'/isic2019/results/'
     # Data is loaded from here
-    mdlParams['dataDir'] = mdlParams_['pathBase']+'/data/isic/2019'
+    mdlParams['dataDir'] = mdlParams_['pathBase']+'/isic2019/'
 
     ### Model Selection ###
     mdlParams['model_type'] = 'Resnet50'
@@ -77,7 +77,7 @@ def init(mdlParams_):
     mdlParams['meta_feature_sizes'] = [1,8,2]
     mdlParams['encode_nan'] = False
     # Pretrained model from task 1
-    mdlParams['model_load_path'] = mdlParams_['pathBase']+'/data/isic/2019.test_effb0_ss'
+    mdlParams['model_load_path'] = mdlParams_['pathBase']+'/isic2019.test_effb0_ss'
     mdlParams['fc_layers_before'] = [256,256]
     # Factor for scaling up the FC layer
     scale_up_with_larger_b = 1.0
