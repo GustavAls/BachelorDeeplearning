@@ -12,9 +12,11 @@ import imagesize
 def init(mdlParams_):
     mdlParams = {}
     # Save summaries and model here
-    mdlParams['saveDir'] = mdlParams_['pathBase']+'/data/isic/'
+    local_path = '/isic2019/'
+    # local_path = '\isic2019\\'
+    mdlParams['saveDir'] = mdlParams_['pathBase']+'/'
     # Data is loaded from here
-    mdlParams['dataDir'] = mdlParams_['pathBase']+'/data/isic/2019'
+    mdlParams['dataDir'] = mdlParams_['pathBase']+local_path
 
     ### Model Selection ###
     mdlParams['model_type'] = 'Resnet50'
@@ -78,8 +80,10 @@ def init(mdlParams_):
     # Targets, as dictionary, indexed by im file name
     mdlParams['labels_dict'] = {}
     path1 = mdlParams['dataDir'] + '/labels/'
+    # path1 = mdlParams['dataDir'] + '\labels\\'
      # All sets
     allSets = glob(path1 + '*/')
+    # allSets = glob(path1 + '*\\')
     # Go through all sets
     for i in range(len(allSets)):
         # Check if want to include this dataset
@@ -128,8 +132,11 @@ def init(mdlParams_):
     mdlParams['labels_list'] = []
     # Define the sets
     path1 = mdlParams['dataDir'] + '/images/'
+    # path1 = mdlParams['dataDir'] + '\images\\'
     # All sets
     allSets = sorted(glob(path1 + '*/'))
+    # allSets = sorted(glob(path1 + '*\\'))
+
     # Ids which name the folders
     # Make official first dataset
     for i in range(len(allSets)):

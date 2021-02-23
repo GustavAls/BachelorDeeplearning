@@ -12,9 +12,11 @@ import imagesize
 def init(mdlParams_):
     mdlParams = {}
     # Save summaries and model here
-    mdlParams['saveDir'] = mdlParams_['pathBase']+'/isic2019/results/'
+    # local_path = '/isic2019/'
+    local_path = '\isic2019\\'
+    mdlParams['saveDir'] = mdlParams_['pathBase']+'\\'
     # Data is loaded from here
-    mdlParams['dataDir'] = mdlParams_['pathBase']+'/isic2019/'
+    mdlParams['dataDir'] = mdlParams_['pathBase']+local_path
 
     ### Model Selection ###
     mdlParams['model_type'] = 'Resnet50'
@@ -77,7 +79,8 @@ def init(mdlParams_):
     mdlParams['meta_feature_sizes'] = [1,8,2]
     mdlParams['encode_nan'] = False
     # Pretrained model from task 1
-    mdlParams['model_load_path'] = mdlParams_['pathBase']+'/isic2019.test_effb0_ss'
+    # mdlParams['model_load_path'] = mdlParams_['pathBase']+'/isic2019.test_res50_ss'
+    mdlParams['model_load_path'] = mdlParams_['pathBase']+'\\isic2019.test_res50_ss'
     mdlParams['fc_layers_before'] = [256,256]
     # Factor for scaling up the FC layer
     scale_up_with_larger_b = 1.0
@@ -96,8 +99,10 @@ def init(mdlParams_):
     # Targets, as dictionary, indexed by im file name
     mdlParams['labels_dict'] = {}
     path1 = mdlParams['dataDir'] + '/labels/'
+    # path1 = mdlParams['dataDir'] + '\\labels\\'
      # All sets
     allSets = glob(path1 + '*/')
+    # allSets = glob(path1 + '*\\')
     # Go through all sets
     for i in range(len(allSets)):
         # Check if want to include this dataset
@@ -144,8 +149,10 @@ def init(mdlParams_):
     # Load meta data
     mdlParams['meta_dict'] = {}
     path1 = mdlParams['dataDir'] + '/meta_data/'
+    # path1 = mdlParams['dataDir'] + '\\meta_data\\'
      # All sets
     allSets = glob(path1 + '*/')
+    # allSets = glob(path1 + '*\\')
     # Go through all sets
     for i in range(len(allSets)):
         # Check if want to include this dataset
@@ -162,6 +169,7 @@ def init(mdlParams_):
                 break
         # Open and load
         with open(files[j],'rb') as f:
+            f.seek(0)
             meta_data = pickle.load(f)
         # Write into dict
         for k in range(len(meta_data['im_name'])):
@@ -196,8 +204,10 @@ def init(mdlParams_):
     mdlParams['meta_list'] = []
     # Define the sets
     path1 = mdlParams['dataDir'] + '/images/'
+    # path1 = mdlParams['dataDir'] + '\\images\\'
     # All sets
     allSets = sorted(glob(path1 + '*/'))
+    # allSets = sorted(glob(path1 + '*\\'))
     # Ids which name the folders
     # Make official first dataset
     for i in range(len(allSets)):
