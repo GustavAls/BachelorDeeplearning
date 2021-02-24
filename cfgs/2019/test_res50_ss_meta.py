@@ -12,9 +12,9 @@ import imagesize
 def init(mdlParams_):
     mdlParams = {}
     # Save summaries and model here
-    # local_path = '/isic2019/'
-    local_path = '\isic2019\\'
-    mdlParams['saveDir'] = mdlParams_['pathBase']+'\\'
+    local_path = '/isic2019/'
+    # local_path = '\isic2019\\'
+    mdlParams['saveDir'] = mdlParams_['pathBase']+'/'
     # Data is loaded from here
     mdlParams['dataDir'] = mdlParams_['pathBase']+local_path
 
@@ -79,8 +79,8 @@ def init(mdlParams_):
     mdlParams['meta_feature_sizes'] = [1,8,2]
     mdlParams['encode_nan'] = False
     # Pretrained model from task 1
-    # mdlParams['model_load_path'] = mdlParams_['pathBase']+'/isic2019.test_res50_ss'
-    mdlParams['model_load_path'] = mdlParams_['pathBase']+'\\isic2019.test_res50_ss'
+    mdlParams['model_load_path'] = mdlParams_['pathBase']+'/isic2019.test_res50_ss'
+    # mdlParams['model_load_path'] = mdlParams_['pathBase']+'\\isic2019.test_res50_ss'
     mdlParams['fc_layers_before'] = [256,256]
     # Factor for scaling up the FC layer
     scale_up_with_larger_b = 1.0
