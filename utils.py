@@ -617,7 +617,7 @@ def getErrClassification_mgpu(mdlParams, indices, modelVars, exclude_class=None)
         elif mdlParams['voting_scheme'] == 'average':
             predictions = np.mean(predictions_mc,2)
     elif mdlParams.get('multiCropEval',0) > 0:
-        loss_all = np.zeros([numBatches])
+        #loss_all = np.zeros([numBatches])
         predictions = np.zeros([len(mdlParams[indices]),mdlParams['numClasses']])
         targets = np.zeros([len(mdlParams[indices]),mdlParams['numClasses']])
         loss_mc = np.zeros([len(mdlParams[indices])])
@@ -651,6 +651,8 @@ def getErrClassification_mgpu(mdlParams, indices, modelVars, exclude_class=None)
             tar = np.zeros((tar_not_one_hot.shape[0], mdlParams['numClasses']))
             tar[np.arange(tar_not_one_hot.shape[0]),tar_not_one_hot] = 1
             targets_mc[i,:,:] = np.transpose(tar)
+
+        loss_all = loss_mc
         # Targets stay the same
         targets = targets_mc[:,:,0]
         if mdlParams['voting_scheme'] == 'vote':
@@ -669,6 +671,7 @@ def getErrClassification_mgpu(mdlParams, indices, modelVars, exclude_class=None)
             predictions = np.zeros([len(mdlParams[indices]),mdlParams['numClasses']])
             targets = np.zeros([len(mdlParams[indices]),mdlParams['numClasses']])
             loss_mc = np.zeros([len(mdlParams[indices])])
+
             predictions_mc = np.zeros([len(mdlParams[indices]),mdlParams['numClasses'],mdlParams['numRandValSeq']])
             targets_mc = np.zeros([len(mdlParams[indices]),mdlParams['numClasses'],mdlParams['numRandValSeq']])
             for i, (inputs, labels, inds) in enumerate(modelVars['dataloader_'+indices]):
@@ -692,13 +695,16 @@ def getErrClassification_mgpu(mdlParams, indices, modelVars, exclude_class=None)
                     preds = modelVars['softmax'](outputs)
                     # Loss
                     loss = modelVars['criterion'](outputs, labels)
+
                 # Write into proper arrays
                 loss_mc[i] = np.mean(loss.cpu().numpy())
+
                 predictions_mc[i,:,:] = np.transpose(preds)
                 tar_not_one_hot = labels.data.cpu().numpy()
                 tar = np.zeros((tar_not_one_hot.shape[0], mdlParams['numClasses']))
                 tar[np.arange(tar_not_one_hot.shape[0]),tar_not_one_hot] = 1
                 targets_mc[i,:,:] = np.transpose(tar)
+
             # Targets stay the same
             targets = targets_mc[:,:,0]
             if mdlParams['voting_scheme'] == 'vote':
