@@ -34,7 +34,7 @@ def init(mdlParams_):
     mdlParams['numClasses'] = 9
     mdlParams['no_c9_eval'] = True
     mdlParams['numOut'] = mdlParams['numClasses']
-    mdlParams['numCV'] = 5
+    mdlParams['numCV'] = 1
     mdlParams['trans_norm_first'] = True
     # Scale up for b1-b7
     mdlParams['input_size'] = [224,224,3]
