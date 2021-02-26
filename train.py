@@ -128,9 +128,9 @@ def main():
         modelVars['device'] = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print(modelVars['device'])
         # Def current CV set
-        mdlParams['trainInd'] = mdlParams['trainIndCV'][cv]
+        mdlParams['trainInd'] = mdlParams['trainIndCV']
         if 'valIndCV' in mdlParams:
-            mdlParams['valInd'] = mdlParams['valIndCV'][cv]
+            mdlParams['valInd'] = mdlParams['valIndCV']
         # Def current path for saving stuff
         if 'valIndCV' in mdlParams:
             mdlParams['saveDir'] = mdlParams['saveDirBase'] + '/CVSet' + str(cv)
