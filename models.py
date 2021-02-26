@@ -9,27 +9,28 @@ import pretrainedmodels
 import torch.nn.functional as F
 import types
 import torch
+import timm
 from efficientnet_pytorch import EfficientNet
 from collections import OrderedDict
 import torch.nn as nn
 
 def Dense121(config):
-    return models.densenet121(pretrained=True)
+    return timm.create_model('densenet121', pretrained=True)
 
 def Dense161(config):
-    return models.densenet169(pretrained=True)
-
-def Dense169(config):
     return models.densenet161(pretrained=True)
 
+def Dense169(config):
+    return timm.create_model('densenet169', pretrained=True)
+
 def Dense201(config):
-    return models.densenet201(pretrained=True)
+    return timm.create_model('densenet201', pretrained=True)
 
 def Resnet50(config):
-    return pretrainedmodels.__dict__['resnet50'](num_classes=1000, pretrained='imagenet')
+    return timm.create_model('resnet50', pretrained=True)
 
 def Resnet101(config):
-    return models.resnet101(pretrained=True)
+    return timm.create_model('resnet101', pretrained=True)
 
 def InceptionV3(config):
     return models.inception_v3(pretrained=True)
@@ -83,28 +84,28 @@ def resnext101_32_48_wsl(config):
     return torch.hub.load('facebookresearch/WSL-Images', 'resnext101_32x48d_wsl')
 
 def efficientnet_b0(config):
-    return EfficientNet.from_pretrained('efficientnet-b0',num_classes=config['numClasses'])
+    return timm.create_model('efficientnet_b0', pretrained=True)
 
 def efficientnet_b1(config):
-    return EfficientNet.from_pretrained('efficientnet-b1',num_classes=config['numClasses'])
+    return timm.create_model('efficientnet_b1', pretrained=True)
 
 def efficientnet_b2(config):
-    return EfficientNet.from_pretrained('efficientnet-b2',num_classes=config['numClasses'])
+    return timm.create_model('efficientnet_b2', pretrained=True)
 
 def efficientnet_b3(config):
-    return EfficientNet.from_pretrained('efficientnet-b3',num_classes=config['numClasses'])
+    return timm.create_model('efficientnet_b3', pretrained=True)
 
 def efficientnet_b4(config):
-    return EfficientNet.from_pretrained('efficientnet-b4',num_classes=config['numClasses'])
+    return timm.create_model('efficientnet_b4', pretrained=True)
 
 def efficientnet_b5(config):
-    return EfficientNet.from_pretrained('efficientnet-b5',num_classes=config['numClasses'])
+    return timm.create_model('efficientnet_b5', pretrained=True)
 
 def efficientnet_b6(config):
-    return EfficientNet.from_pretrained('efficientnet-b6',num_classes=config['numClasses'])
+    return timm.create_model('efficientnet_b6', pretrained=True)
 
 def efficientnet_b7(config):
-    return EfficientNet.from_pretrained('efficientnet-b7',num_classes=config['numClasses'])
+    return timm.create_model('efficientnet_b7', pretrained=True)
 
 def modify_meta(mdlParams,model):
     # Define FC layers

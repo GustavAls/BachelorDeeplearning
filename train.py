@@ -294,7 +294,7 @@ def main():
         # if 'Dense' not in mdlParams['model_type']:
         #    print("Original input size",modelVars['model'].input_size)
         # print(modelVars['model'])
-        if 'Dense' in mdlParams['model_type']:
+        if 'Dense161' in mdlParams['model_type']:
             if mdlParams['input_size'][0] != 224:
                 modelVars['model'] = utils.modify_densenet_avg_pool(modelVars['model'])
                 # print(modelVars['model'])
@@ -306,11 +306,9 @@ def main():
             modelVars['model'].classifier = nn.Conv2d(num_ftrs, mdlParams['numClasses'], [1, 1])
             # modelVars['model'].add_module('real_classifier',nn.Linear(num_ftrs, mdlParams['numClasses']))
             # print(modelVars['model'])
-        elif 'efficient' in mdlParams['model_type']:
+        elif 'Resnet' in mdlParams['model_type'] or 'efficient' in mdlParams['model_type'] \
+                or 'wsl' in mdlParams['model_type'] or ('Dense' in mdlParams['model_type'] and '161' not in mdlParams['model_type']):
             # Do nothing, output is prepared
-            num_ftrs = modelVars['model']._fc.in_features
-            modelVars['model']._fc = nn.Linear(num_ftrs, mdlParams['numClasses'])
-        elif 'wsl' in mdlParams['model_type']:
             num_ftrs = modelVars['model'].fc.in_features
             modelVars['model'].fc = nn.Linear(num_ftrs, mdlParams['numClasses'])
         else:
@@ -323,13 +321,10 @@ def main():
                 # deactivate all
                 for param in modelVars['model'].parameters():
                     param.requires_grad = False
-                if 'efficient' in mdlParams['model_type']:
+                if 'efficient' in mdlParams['model_type'] or 'wsl' in mdlParams['model_type'] \
+                        or ('Dense' in mdlParams['model_type'] and '161' not in mdlParams['model_type']):
                     # Activate fc
                     for param in modelVars['model']._fc.parameters():
-                        param.requires_grad = True
-                elif 'wsl' in mdlParams['model_type']:
-                    # Activate fc
-                    for param in modelVars['model'].fc.parameters():
                         param.requires_grad = True
                 else:
                     # Activate fc

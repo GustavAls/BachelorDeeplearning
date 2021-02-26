@@ -562,7 +562,7 @@ def getErrClassification_mgpu(mdlParams, indices, modelVars, exclude_class=None)
         numBatches = int(math.ceil(len(mdlParams[indices])/mdlParams['batchSize']/len(mdlParams['numGPUs'])))
     # Consider multi-crop case
     if mdlParams.get('eval_flipping',0) > 1 and mdlParams.get('multiCropEval',0) > 0:
-        loss_all = np.zeros([numBatches])
+        #loss_all = np.zeros([numBatches])
         predictions = np.zeros([len(mdlParams[indices]),mdlParams['numClasses']])
         targets = np.zeros([len(mdlParams[indices]),mdlParams['numClasses']])
         loss_mc = np.zeros([len(mdlParams[indices])*mdlParams['eval_flipping']])
@@ -604,6 +604,8 @@ def getErrClassification_mgpu(mdlParams, indices, modelVars, exclude_class=None)
             targets_mc[ind,:,:,flip_ind[0]] = np.transpose(tar)
         # Targets stay the same
         targets = targets_mc[:,:,0,0]
+        # storing total loss
+        loss_all = loss_mc
         # reshape preds
         predictions_mc = np.reshape(predictions_mc,[predictions_mc.shape[0],predictions_mc.shape[1],mdlParams['multiCropEval']*mdlParams['eval_flipping']])
         if mdlParams['voting_scheme'] == 'vote':
@@ -652,9 +654,10 @@ def getErrClassification_mgpu(mdlParams, indices, modelVars, exclude_class=None)
             tar[np.arange(tar_not_one_hot.shape[0]),tar_not_one_hot] = 1
             targets_mc[i,:,:] = np.transpose(tar)
 
-        loss_all = loss_mc
         # Targets stay the same
         targets = targets_mc[:,:,0]
+        # storing total loss
+        loss_all = loss_mc
         if mdlParams['voting_scheme'] == 'vote':
             # Vote for correct prediction
             print("Pred Shape",predictions_mc.shape)
@@ -667,7 +670,7 @@ def getErrClassification_mgpu(mdlParams, indices, modelVars, exclude_class=None)
             predictions = np.mean(predictions_mc,2)
     else:
         if mdlParams.get('model_type_cnn') is not None and mdlParams['numRandValSeq'] > 0:
-            loss_all = np.zeros([numBatches])
+            #loss_all = np.zeros([numBatches])
             predictions = np.zeros([len(mdlParams[indices]),mdlParams['numClasses']])
             targets = np.zeros([len(mdlParams[indices]),mdlParams['numClasses']])
             loss_mc = np.zeros([len(mdlParams[indices])])
@@ -707,6 +710,8 @@ def getErrClassification_mgpu(mdlParams, indices, modelVars, exclude_class=None)
 
             # Targets stay the same
             targets = targets_mc[:,:,0]
+            # storing total loss
+            loss_all = loss_mc
             if mdlParams['voting_scheme'] == 'vote':
                 # Vote for correct prediction
                 print("Pred Shape",predictions_mc.shape)
