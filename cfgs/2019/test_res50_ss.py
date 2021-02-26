@@ -233,20 +233,20 @@ def init(mdlParams_):
         all_inds = np.arange(len(mdlParams['im_paths']))
         exclude_inds = all_inds[exclude_list.astype(bool)]
         for i in range(len(mdlParams['trainIndCV'])):
-            mdlParams['trainIndCV'][i] = np.setdiff1d(mdlParams['trainIndCV'][i],exclude_inds)
+            mdlParams['trainIndCV'] = np.setdiff1d(mdlParams['trainIndCV'],exclude_inds)
         for i in range(len(mdlParams['valIndCV'])):
-            mdlParams['valIndCV'][i] = np.setdiff1d(mdlParams['valIndCV'][i],exclude_inds)
+            mdlParams['valIndCV'] = np.setdiff1d(mdlParams['valIndCV'],exclude_inds)
     # Consider case with more than one set
     if len(mdlParams['dataset_names']) > 1:
         restInds = np.array(np.arange(25331,mdlParams['labels_array'].shape[0]))
         for i in range(mdlParams['numCV']):
-            mdlParams['trainIndCV'][i] = np.concatenate((mdlParams['trainIndCV'][i],restInds))
+            mdlParams['trainIndCV'] = np.concatenate((mdlParams['trainIndCV'],restInds))
     print("Train")
-    for i in range(len(mdlParams['trainIndCV'])):
-        print(mdlParams['trainIndCV'][i].shape)
-    print("Val")
-    for i in range(len(mdlParams['valIndCV'])):
-        print(mdlParams['valIndCV'][i].shape)
+    # for i in range(len(mdlParams['trainIndCV'])):
+    #     print(mdlParams['trainIndCV'][i].shape)
+    # print("Val")
+    # for i in range(len(mdlParams['valIndCV'])):
+    #     print(mdlParams['valIndCV'][i].shape)
 
     # Use this for ordered multi crops
     if mdlParams['orderedCrop']:
