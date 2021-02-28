@@ -14,7 +14,7 @@ def init(mdlParams_):
     # Save summaries and model here
     local_path = '/isic2019/'
     # local_path = '\isic2019\\'
-    mdlParams['saveDir'] = mdlParams_['pathBase']+'\\'
+    mdlParams['saveDir'] = mdlParams_['pathBase']+'/'
     # Data is loaded from here
     mdlParams['dataDir'] = mdlParams_['pathBase']+local_path
 
@@ -51,7 +51,7 @@ def init(mdlParams_):
     # Divide learning rate by this value
     mdlParams['LRstep'] = 5
     # Maximum number of training iterations
-    mdlParams['training_steps'] = 60  # 250
+    mdlParams['training_steps'] = 100  # 250
     # Display error every X steps
     mdlParams['display_step'] = 10
     # Scale?
