@@ -306,8 +306,11 @@ def main():
             modelVars['model'].classifier = nn.Conv2d(num_ftrs, mdlParams['numClasses'], [1, 1])
             # modelVars['model'].add_module('real_classifier',nn.Linear(num_ftrs, mdlParams['numClasses']))
             # print(modelVars['model'])
-        elif 'Resnet' in mdlParams['model_type'] or 'efficient' in mdlParams['model_type'] \
-                or 'wsl' in mdlParams['model_type'] or ('Dense' in mdlParams['model_type'] and '161' not in mdlParams['model_type']):
+        elif 'efficient' in mdlParams['model_type']:
+            num_ftrs = modelVars['model'].classifier.in_features
+            modelVars['model'].classifier = nn.Linear(num_ftrs, mdlParams['numClasses'])
+
+        elif 'Resnet' in mdlParams['model_type'] or 'wsl' in mdlParams['model_type'] or ('Dense' in mdlParams['model_type'] and '161' not in mdlParams['model_type']):
             # Do nothing, output is prepared
             num_ftrs = modelVars['model'].fc.in_features
             modelVars['model'].fc = nn.Linear(num_ftrs, mdlParams['numClasses'])
@@ -321,10 +324,13 @@ def main():
                 # deactivate all
                 for param in modelVars['model'].parameters():
                     param.requires_grad = False
-                if 'efficient' in mdlParams['model_type'] or 'wsl' in mdlParams['model_type'] \
-                        or ('Dense' in mdlParams['model_type'] and '161' not in mdlParams['model_type']):
+                if 'wsl' in mdlParams['model_type'] or ('Dense' in mdlParams['model_type'] and '161' not in mdlParams['model_type']):
                     # Activate fc
                     for param in modelVars['model']._fc.parameters():
+                        param.requires_grad = True
+                elif 'efficient' in mdlParams['model_type']:
+                    # Activate fc
+                    for param in modelVars['model'].classifier.parameters():
                         param.requires_grad = True
                 else:
                     # Activate fc
