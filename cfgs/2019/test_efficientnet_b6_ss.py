@@ -19,7 +19,7 @@ def init(mdlParams_):
     mdlParams['dataDir'] = mdlParams_['pathBase']+local_path
 
     ### Model Selection ###
-    mdlParams['model_type'] = 'efficientnet_b6'
+    mdlParams['model_type'] = 'efficientnet-b6'
     mdlParams['dataset_names'] = ['official']  # ,'sevenpoint_rez3_ll']
     mdlParams['file_ending'] = '.jpg'
     mdlParams['exclude_inds'] = False
