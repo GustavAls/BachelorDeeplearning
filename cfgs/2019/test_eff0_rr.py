@@ -74,12 +74,12 @@ def init(mdlParams_):
 
     # Data AUG
     #mdlParams['full_color_distort'] = True
-    mdlParams['autoaugment'] = False
-    mdlParams['flip_lr_ud'] = True
-    mdlParams['full_rot'] = 180
+    mdlParams['autoaugment'] = True
+    mdlParams['flip_lr_ud'] = False
+    mdlParams['full_rot'] = 0
     mdlParams['scale'] = (0.8,1.2)
     mdlParams['shear'] = 10
-    mdlParams['cutout'] = 16
+    mdlParams['cutout'] = 0
 
     ### Data ###
     mdlParams['preload'] = False
