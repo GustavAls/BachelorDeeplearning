@@ -19,7 +19,7 @@ def init(mdlParams_):
     mdlParams['dataDir'] = mdlParams_['pathBase']+local_path
 
     ### Model Selection ###
-    mdlParams['model_type'] = 'efficientnet_b2'
+    mdlParams['model_type'] = 'efficientnet-b2'
     mdlParams['dataset_names'] = ['official']  # ,'sevenpoint_rez3_ll']
     mdlParams['file_ending'] = '.jpg'
     mdlParams['exclude_inds'] = False
@@ -67,12 +67,12 @@ def init(mdlParams_):
 
     # Data AUG
     # mdlParams['full_color_distort'] = True
-    mdlParams['autoaugment'] = False
-    mdlParams['flip_lr_ud'] = True
-    mdlParams['full_rot'] = 180
+    mdlParams['autoaugment'] = True
+    mdlParams['flip_lr_ud'] = False
+    mdlParams['full_rot'] = 0
     mdlParams['scale'] = (0.8, 1.2)
     mdlParams['shear'] = 10
-    mdlParams['cutout'] = 16
+    mdlParams['cutout'] = 0
 
     ### Data ###
     mdlParams['preload'] = False
