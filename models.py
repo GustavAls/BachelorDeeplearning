@@ -96,16 +96,16 @@ def efficientnet_b3(config):
     return timm.create_model('efficientnet_b3', pretrained=True)
 
 def efficientnet_b4(config):
-    return timm.create_model('efficientnet_b4', pretrained=True)
+    return EfficientNet.from_pretrained('efficientnet-b4',num_classes=config['numClasses'])
 
 def efficientnet_b5(config):
-    return timm.create_model('efficientnet_b5', pretrained=True)
+    return EfficientNet.from_pretrained('efficientnet-b5',num_classes=config['numClasses'])
 
 def efficientnet_b6(config):
-    return timm.create_model('efficientnet_b6', pretrained=True)
+    return EfficientNet.from_pretrained('efficientnet-b6',num_classes=config['numClasses'])
 
 def efficientnet_b7(config):
-    return timm.create_model('efficientnet_b7', pretrained=True)
+    return EfficientNet.from_pretrained('efficientnet-b7',num_classes=config['numClasses'])
 
 def modify_meta(mdlParams,model):
     # Define FC layers
