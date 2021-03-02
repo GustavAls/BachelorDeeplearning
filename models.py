@@ -18,7 +18,7 @@ def Dense121(config):
     return timm.create_model('densenet121', pretrained=True)
 
 def Dense161(config):
-    return models.densenet161(pretrained=True)
+    return timm.create_model('densenet161', pretrained=True)
 
 def Dense169(config):
     return timm.create_model('densenet169', pretrained=True)
@@ -30,7 +30,7 @@ def Resnet50(config):
     return timm.create_model('resnet50', pretrained=True)
 
 def Resnet101(config):
-    return timm.create_model('resnet101', pretrained=True)
+    return models.resnet101(pretrained=True)
 
 def InceptionV3(config):
     return models.inception_v3(pretrained=True)

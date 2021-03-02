@@ -19,7 +19,7 @@ def init(mdlParams_):
     mdlParams['dataDir'] = mdlParams_['pathBase']+local_path
 
     ### Model Selection ###
-    mdlParams['model_type'] = 'efficientnet-b4'
+    mdlParams['model_type'] = 'Dense169'
     mdlParams['dataset_names'] = ['official']  # ,'sevenpoint_rez3_ll']
     mdlParams['file_ending'] = '.jpg'
     mdlParams['exclude_inds'] = False
@@ -37,9 +37,9 @@ def init(mdlParams_):
     mdlParams['numCV'] = 1
     mdlParams['trans_norm_first'] = True
     # Scale up for b1-b7
-    mdlParams['input_size'] = [380, 380, 3]
+    mdlParams['input_size'] = [224, 224, 3]
 
-    ### Training Paramieters ###
+    ### Training Parameters ###
     # Batch size
     mdlParams['batchSize'] = 20  # *len(mdlParams['numGPUs'])
     # Initial learning rate
