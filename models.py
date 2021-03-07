@@ -63,10 +63,10 @@ def polynet(config):
     return pretrainedmodels.__dict__['polynet'](num_classes=1000, pretrained='imagenet')
 
 def dpn92(config):
-    return pretrainedmodels.__dict__['dpn92'](num_classes=1000, pretrained='imagenet+5k')
+    return timm.create_model('dpn92', pretrained=True)
 
 def dpn68b(config):
-    return pretrainedmodels.__dict__['dpn68b'](num_classes=1000, pretrained='imagenet+5k')
+    return timm.create_model('dpn68b', pretrained=True)
 
 def nasnetamobile(config):
     return pretrainedmodels.__dict__['nasnetamobile'](num_classes=1000, pretrained='imagenet')
