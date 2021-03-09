@@ -316,7 +316,7 @@ def main():
             num_ftrs = modelVars['model']._fc.in_features
             modelVars['model'].classifier = nn.Linear(num_ftrs, mdlParams['numClasses'])
 
-        elif 'wsl' in mdlParams['model_type'] or 'Resnet' in mdlParams['model_type']:
+        elif 'wsl' in mdlParams['model_type'] or 'Resnet' in mdlParams['model_type'] or 'Inception' in mdlParams['model_type']:
             # Do nothing, output is prepared
             num_ftrs = modelVars['model'].fc.in_features
             modelVars['model'].fc = nn.Linear(num_ftrs, mdlParams['numClasses'])
@@ -330,7 +330,7 @@ def main():
                 # deactivate all
                 for param in modelVars['model'].parameters():
                     param.requires_grad = False
-                if 'wsl' in mdlParams['model_type'] or 'Resnet' in mdlParams['model_type']:
+                if 'wsl' in mdlParams['model_type'] or 'Resnet' in mdlParams['model_type'] or 'Inception' in mdlParams['model_type']:
                     # Activate classifier layer
                     for param in modelVars['model'].fc.parameters():
                         param.requires_grad = True
