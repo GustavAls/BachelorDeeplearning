@@ -37,11 +37,11 @@ def init(mdlParams_):
     mdlParams['numCV'] = 1
     mdlParams['trans_norm_first'] = True
     # Scale up for b1-b7
-    mdlParams['input_size'] = [224, 224, 3]
+    mdlParams['input_size'] = [380, 380, 3]
 
-    ### Training Parameters ###
+    ### Training Paramieters ###
     # Batch size
-    mdlParams['batchSize'] = 20  # *len(mdlParams['numGPUs'])
+    mdlParams['batchSize'] = 12  # *len(mdlParams['numGPUs'])
     # Initial learning rate
     mdlParams['learning_rate'] = 0.000015  # *len(mdlParams['numGPUs'])
     # Lower learning rate after no improvement over 100 epochs

@@ -9,24 +9,25 @@ import pretrainedmodels
 import torch.nn.functional as F
 import types
 import torch
+import timm
 from efficientnet_pytorch import EfficientNet
 from collections import OrderedDict
 import torch.nn as nn
 
 def Dense121(config):
-    return models.densenet121(pretrained=True)
+    return timm.create_model('densenet121', pretrained=True)
 
 def Dense161(config):
-    return models.densenet169(pretrained=True)
+    return timm.create_model('densenet161', pretrained=True)
 
 def Dense169(config):
-    return models.densenet161(pretrained=True)
+    return timm.create_model('densenet169', pretrained=True)
 
 def Dense201(config):
-    return models.densenet201(pretrained=True)
+    return timm.create_model('densenet201', pretrained=True)
 
 def Resnet50(config):
-    return pretrainedmodels.__dict__['resnet50'](num_classes=1000, pretrained='imagenet')
+    return timm.create_model('resnet50', pretrained=True)
 
 def Resnet101(config):
     return models.resnet101(pretrained=True)
@@ -62,10 +63,10 @@ def polynet(config):
     return pretrainedmodels.__dict__['polynet'](num_classes=1000, pretrained='imagenet')
 
 def dpn92(config):
-    return pretrainedmodels.__dict__['dpn92'](num_classes=1000, pretrained='imagenet+5k')
+    return timm.create_model('dpn92', pretrained=True)
 
 def dpn68b(config):
-    return pretrainedmodels.__dict__['dpn68b'](num_classes=1000, pretrained='imagenet+5k')
+    return timm.create_model('dpn68b', pretrained=True)
 
 def nasnetamobile(config):
     return pretrainedmodels.__dict__['nasnetamobile'](num_classes=1000, pretrained='imagenet')
@@ -83,16 +84,16 @@ def resnext101_32_48_wsl(config):
     return torch.hub.load('facebookresearch/WSL-Images', 'resnext101_32x48d_wsl')
 
 def efficientnet_b0(config):
-    return EfficientNet.from_pretrained('efficientnet-b0',num_classes=config['numClasses'])
+    return timm.create_model('efficientnet_b0', pretrained=True)
 
 def efficientnet_b1(config):
-    return EfficientNet.from_pretrained('efficientnet-b1',num_classes=config['numClasses'])
+    return timm.create_model('efficientnet_b1', pretrained=True)
 
 def efficientnet_b2(config):
-    return EfficientNet.from_pretrained('efficientnet-b2',num_classes=config['numClasses'])
+    return timm.create_model('efficientnet_b2', pretrained=True)
 
 def efficientnet_b3(config):
-    return EfficientNet.from_pretrained('efficientnet-b3',num_classes=config['numClasses'])
+    return timm.create_model('efficientnet_b3', pretrained=True)
 
 def efficientnet_b4(config):
     return EfficientNet.from_pretrained('efficientnet-b4',num_classes=config['numClasses'])

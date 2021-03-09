@@ -37,7 +37,7 @@ def init(mdlParams_):
     mdlParams['numCV'] = 1
     mdlParams['trans_norm_first'] = True
     # Scale up for b1-b7
-    mdlParams['input_size'] = [224, 224, 3]
+    mdlParams['input_size'] = [300, 300, 3]
 
     ### Training Parameters ###
     # Batch size
