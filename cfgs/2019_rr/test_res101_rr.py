@@ -11,7 +11,6 @@ import imagesize
 
 def init(mdlParams_):
     mdlParams = {}
-    # Save summaries and model here
     local_path = '/isic2019/'
     # local_path = '\isic2019\\'
     mdlParams['saveDir'] = mdlParams_['pathBase']+'/'
@@ -19,14 +18,14 @@ def init(mdlParams_):
     mdlParams['dataDir'] = mdlParams_['pathBase']+local_path
 
     ### Model Selection ###
-    mdlParams['model_type'] = 'resnext101'
-    mdlParams['dataset_names'] = ['official']  # ,'sevenpoint_rez3_ll']
+    mdlParams['model_type'] = 'resnet101'
+    mdlParams['dataset_names'] = ['official']#,'sevenpoint_rez3_ll']
     mdlParams['file_ending'] = '.jpg'
     mdlParams['exclude_inds'] = False
-    mdlParams['same_sized_crops'] = True
+    mdlParams['same_sized_crops'] = False
     mdlParams['multiCropEval'] = 9
-    mdlParams['var_im_size'] = True
-    mdlParams['orderedCrop'] = True
+    mdlParams['var_im_size'] = False
+    mdlParams['orderedCrop'] = False
     mdlParams['voting_scheme'] = 'average'
     mdlParams['classification'] = True
     mdlParams['balance_classes'] = 9
@@ -36,14 +35,23 @@ def init(mdlParams_):
     mdlParams['numOut'] = mdlParams['numClasses']
     mdlParams['numCV'] = 1
     mdlParams['trans_norm_first'] = True
+    # Deterministic cropping
+    mdlParams['deterministic_eval'] = True
+    mdlParams['numCropPositions'] = 1
+    num_scales = 4
+    all_scales = [1.0,0.5,0.75,0.25,0.9,0.6,0.4]
+    mdlParams['cropScales'] = all_scales[:num_scales]
+    mdlParams['cropFlipping'] = 4
+    mdlParams['multiCropEval'] = mdlParams['numCropPositions']*len(mdlParams['cropScales'])*mdlParams['cropFlipping']
+    mdlParams['offset_crop'] = 0.2
     # Scale up for b1-b7
-    mdlParams['input_size'] = [224, 224, 3]
+    mdlParams['input_size'] = [224,224,3]
 
     ### Training Parameters ###
     # Batch size
-    mdlParams['batchSize'] = 20  # *len(mdlParams['numGPUs'])
+    mdlParams['batchSize'] = 20#*len(mdlParams['numGPUs'])
     # Initial learning rate
-    mdlParams['learning_rate'] = 0.000015  # *len(mdlParams['numGPUs'])
+    mdlParams['learning_rate'] = 0.000015#*len(mdlParams['numGPUs'])
     # Lower learning rate after no improvement over 100 epochs
     mdlParams['lowerLRAfter'] = 25
     # If there is no validation set, start lowering the LR after X steps
@@ -51,7 +59,7 @@ def init(mdlParams_):
     # Divide learning rate by this value
     mdlParams['LRstep'] = 5
     # Maximum number of training iterations
-    mdlParams['training_steps'] = 100  # 250
+    mdlParams['training_steps'] = 100 #250
     # Display error every X steps
     mdlParams['display_step'] = 10
     # Scale?
@@ -66,11 +74,11 @@ def init(mdlParams_):
     mdlParams['setStd'] = np.array([1.0, 1.0, 1.0])
 
     # Data AUG
-    # mdlParams['full_color_distort'] = True
+    #mdlParams['full_color_distort'] = True
     mdlParams['autoaugment'] = True
     mdlParams['flip_lr_ud'] = False
     mdlParams['full_rot'] = 0
-    mdlParams['scale'] = (0.8, 1.2)
+    mdlParams['scale'] = (0.8,1.2)
     mdlParams['shear'] = 10
     mdlParams['cutout'] = 0
 
@@ -80,10 +88,8 @@ def init(mdlParams_):
     # Targets, as dictionary, indexed by im file name
     mdlParams['labels_dict'] = {}
     path1 = mdlParams['dataDir'] + '/labels/'
-    # path1 = mdlParams['dataDir'] + '\labels\\'
-    # All sets
+     # All sets
     allSets = glob(path1 + '*/')
-    # allSets = glob(path1 + '*\\')
     # Go through all sets
     for i in range(len(allSets)):
         # Check if want to include this dataset
@@ -94,7 +100,7 @@ def init(mdlParams_):
         if not foundSet:
             continue
         # Find csv file
-        files = sorted(glob(allSets[i] + '*'))
+        files = sorted(glob(allSets[i]+'*'))
         for j in range(len(files)):
             if 'csv' in files[j]:
                 break
@@ -104,23 +110,19 @@ def init(mdlParams_):
             for row in labels_str:
                 if 'image' == row[0]:
                     continue
-                # if 'ISIC' in row[0] and '_downsampled' in row[0]:
+                #if 'ISIC' in row[0] and '_downsampled' in row[0]:
                 #    print(row[0])
                 if row[0] + '_downsampled' in mdlParams['labels_dict']:
-                    print("removed", row[0] + '_downsampled')
+                    print("removed",row[0] + '_downsampled')
                     continue
                 if mdlParams['numClasses'] == 7:
-                    mdlParams['labels_dict'][row[0]] = np.array(
-                        [int(float(row[1])), int(float(row[2])), int(float(row[3])), int(float(row[4])),
-                         int(float(row[5])), int(float(row[6])), int(float(row[7]))])
+                    mdlParams['labels_dict'][row[0]] = np.array([int(float(row[1])),int(float(row[2])),int(float(row[3])),int(float(row[4])),int(float(row[5])),int(float(row[6])),int(float(row[7]))])
                 elif mdlParams['numClasses'] == 8:
                     if len(row) < 9 or row[8] == '':
                         class_8 = 0
                     else:
                         class_8 = int(float(row[8]))
-                    mdlParams['labels_dict'][row[0]] = np.array(
-                        [int(float(row[1])), int(float(row[2])), int(float(row[3])), int(float(row[4])),
-                         int(float(row[5])), int(float(row[6])), int(float(row[7])), class_8])
+                    mdlParams['labels_dict'][row[0]] = np.array([int(float(row[1])),int(float(row[2])),int(float(row[3])),int(float(row[4])),int(float(row[5])),int(float(row[6])),int(float(row[7])),class_8])
                 elif mdlParams['numClasses'] == 9:
                     if len(row) < 9 or row[8] == '':
                         class_8 = 0
@@ -130,19 +132,14 @@ def init(mdlParams_):
                         class_9 = 0
                     else:
                         class_9 = int(float(row[9]))
-                    mdlParams['labels_dict'][row[0]] = np.array(
-                        [int(float(row[1])), int(float(row[2])), int(float(row[3])), int(float(row[4])),
-                         int(float(row[5])), int(float(row[6])), int(float(row[7])), class_8, class_9])
+                    mdlParams['labels_dict'][row[0]] = np.array([int(float(row[1])),int(float(row[2])),int(float(row[3])),int(float(row[4])),int(float(row[5])),int(float(row[6])),int(float(row[7])),class_8,class_9])
     # Save all im paths here
     mdlParams['im_paths'] = []
     mdlParams['labels_list'] = []
     # Define the sets
     path1 = mdlParams['dataDir'] + '/images/'
-    # path1 = mdlParams['dataDir'] + '\images\\'
     # All sets
     allSets = sorted(glob(path1 + '*/'))
-    # allSets = sorted(glob(path1 + '*\\'))
-
     # Ids which name the folders
     # Make official first dataset
     for i in range(len(allSets)):
@@ -154,12 +151,12 @@ def init(mdlParams_):
     # Set of keys, for marking old HAM10000
     mdlParams['key_list'] = []
     if mdlParams['exclude_inds']:
-        with open(mdlParams['saveDir'] + 'indices_exclude.pkl', 'rb') as f:
+        with open(mdlParams['saveDir'] + 'indices_exclude.pkl','rb') as f:
             indices_exclude = pickle.load(f)
         exclude_list = []
     for i in range(len(allSets)):
         # All files in that set
-        files = sorted(glob(allSets[i] + '*'))
+        files = sorted(glob(allSets[i]+'*'))
         # Check if there is something in there, if not, discard
         if len(files) == 0:
             continue
@@ -171,14 +168,13 @@ def init(mdlParams_):
         if not foundSet:
             continue
         for j in range(len(files)):
-            if '.jpg' in files[j] or '.jpeg' in files[j] or '.JPG' in files[j] or '.JPEG' in files[j] or '.png' in \
-                    files[j] or '.PNG' in files[j]:
+            if '.jpg' in files[j] or '.jpeg' in files[j] or '.JPG' in files[j] or '.JPEG' in files[j] or '.png' in files[j] or '.PNG' in files[j]:
                 # Add according label, find it first
                 found_already = False
                 for key in mdlParams['labels_dict']:
                     if key + mdlParams['file_ending'] in files[j]:
                         if found_already:
-                            print("Found already:", key, files[j])
+                            print("Found already:",key,files[j])
                         mdlParams['key_list'].append(key)
                         mdlParams['labels_list'].append(mdlParams['labels_dict'][key])
                         found_already = True
@@ -190,50 +186,49 @@ def init(mdlParams_):
                                 exclude_list.append(indices_exclude[key])
     # Convert label list to array
     mdlParams['labels_array'] = np.array(mdlParams['labels_list'])
-    print(np.mean(mdlParams['labels_array'], axis=0))
+    print(np.mean(mdlParams['labels_array'],axis=0))
     # Create indices list with HAM10000 only
     mdlParams['HAM10000_inds'] = []
     HAM_START = 24306
     HAM_END = 34320
     for j in range(len(mdlParams['key_list'])):
         try:
-            curr_id = [int(s) for s in re.findall(r'\d+', mdlParams['key_list'][j])][-1]
+            curr_id = [int(s) for s in re.findall(r'\d+',mdlParams['key_list'][j])][-1]
         except:
             continue
         if curr_id >= HAM_START and curr_id <= HAM_END:
             mdlParams['HAM10000_inds'].append(j)
     mdlParams['HAM10000_inds'] = np.array(mdlParams['HAM10000_inds'])
-    print("Len ham", len(mdlParams['HAM10000_inds']))
+    print("Len ham",len(mdlParams['HAM10000_inds']))
     # Perhaps preload images
     if mdlParams['preload']:
-        mdlParams['images_array'] = np.zeros(
-            [len(mdlParams['im_paths']), mdlParams['input_size_load'][0], mdlParams['input_size_load'][1],
-             mdlParams['input_size_load'][2]], dtype=np.uint8)
+        mdlParams['images_array'] = np.zeros([len(mdlParams['im_paths']),mdlParams['input_size_load'][0],mdlParams['input_size_load'][1],mdlParams['input_size_load'][2]],dtype=np.uint8)
         for i in range(len(mdlParams['im_paths'])):
             x = scipy.ndimage.imread(mdlParams['im_paths'][i])
-            # x = x.astype(np.float32)
+            #x = x.astype(np.float32)
             # Scale to 0-1
-            # min_x = np.min(x)
-            # max_x = np.max(x)
-            # x = (x-min_x)/(max_x-min_x)
-            mdlParams['images_array'][i, :, :, :] = x
-            if i % 1000 == 0:
-                print(i + 1, "images loaded...")
+            #min_x = np.min(x)
+            #max_x = np.max(x)
+            #x = (x-min_x)/(max_x-min_x)
+            mdlParams['images_array'][i,:,:,:] = x
+            if i%1000 == 0:
+                print(i+1,"images loaded...")
     if mdlParams['subtract_set_mean']:
-        mdlParams['images_means'] = np.zeros([len(mdlParams['im_paths']), 3])
+        mdlParams['images_means'] = np.zeros([len(mdlParams['im_paths']),3])
         for i in range(len(mdlParams['im_paths'])):
             x = scipy.ndimage.imread(mdlParams['im_paths'][i])
             x = x.astype(np.float32)
             # Scale to 0-1
             min_x = np.min(x)
             max_x = np.max(x)
-            x = (x - min_x) / (max_x - min_x)
-            mdlParams['images_means'][i, :] = np.mean(x, (0, 1))
-            if i % 1000 == 0:
-                print(i + 1, "images processed for mean...")
+            x = (x-min_x)/(max_x-min_x)
+            mdlParams['images_means'][i,:] = np.mean(x,(0,1))
+            if i%1000 == 0:
+                print(i+1,"images processed for mean...")
 
     ### Define Indices ###
-    with open(mdlParams['saveDir'] + 'indices_isic2019.pkl', 'rb') as f:
+    # Just divide into 5 equally large sets
+    with open(mdlParams['saveDir'] + 'indices_isic2019.pkl','rb') as f:
         indices = pickle.load(f)
     mdlParams['trainIndCV'] = indices['trainIndCV']
     mdlParams['valIndCV'] = indices['valIndCV']
@@ -242,14 +237,14 @@ def init(mdlParams_):
         all_inds = np.arange(len(mdlParams['im_paths']))
         exclude_inds = all_inds[exclude_list.astype(bool)]
         for i in range(len(mdlParams['trainIndCV'])):
-            mdlParams['trainIndCV'] = np.setdiff1d(mdlParams['trainIndCV'], exclude_inds)
+            mdlParams['trainIndCV'] = np.setdiff1d(mdlParams['trainIndCV'],exclude_inds)
         for i in range(len(mdlParams['valIndCV'])):
-            mdlParams['valIndCV'] = np.setdiff1d(mdlParams['valIndCV'], exclude_inds)
+            mdlParams['valIndCV'] = np.setdiff1d(mdlParams['valIndCV'],exclude_inds)
     # Consider case with more than one set
     if len(mdlParams['dataset_names']) > 1:
-        restInds = np.array(np.arange(25331, mdlParams['labels_array'].shape[0]))
+        restInds = np.array(np.arange(25331,mdlParams['labels_array'].shape[0]))
         for i in range(mdlParams['numCV']):
-            mdlParams['trainIndCV'] = np.concatenate((mdlParams['trainIndCV'], restInds))
+            mdlParams['trainIndCV'] = np.concatenate((mdlParams['trainIndCV'],restInds))
     print("Train")
     # for i in range(len(mdlParams['trainIndCV'])):
     #     print(mdlParams['trainIndCV'][i].shape)
@@ -260,48 +255,42 @@ def init(mdlParams_):
     # Use this for ordered multi crops
     if mdlParams['orderedCrop']:
         # Crop positions, always choose multiCropEval to be 4, 9, 16, 25, etc.
-        mdlParams['cropPositions'] = np.zeros([len(mdlParams['im_paths']), mdlParams['multiCropEval'], 2],
-                                              dtype=np.int64)
-        # mdlParams['imSizes'] = np.zeros([len(mdlParams['im_paths']),mdlParams['multiCropEval'],2],dtype=np.int64)
+        mdlParams['cropPositions'] = np.zeros([len(mdlParams['im_paths']),mdlParams['multiCropEval'],2],dtype=np.int64)
+        #mdlParams['imSizes'] = np.zeros([len(mdlParams['im_paths']),mdlParams['multiCropEval'],2],dtype=np.int64)
         for u in range(len(mdlParams['im_paths'])):
             height, width = imagesize.get(mdlParams['im_paths'][u])
             if width < mdlParams['input_size'][0]:
-                height = int(mdlParams['input_size'][0] / float(width)) * height
+                height = int(mdlParams['input_size'][0]/float(width))*height
                 width = mdlParams['input_size'][0]
             if height < mdlParams['input_size'][0]:
-                width = int(mdlParams['input_size'][0] / float(height)) * width
+                width = int(mdlParams['input_size'][0]/float(height))*width
                 height = mdlParams['input_size'][0]
             ind = 0
             for i in range(np.int32(np.sqrt(mdlParams['multiCropEval']))):
                 for j in range(np.int32(np.sqrt(mdlParams['multiCropEval']))):
-                    mdlParams['cropPositions'][u, ind, 0] = mdlParams['input_size'][0] / 2 + i * (
-                            (width - mdlParams['input_size'][1]) / (np.sqrt(mdlParams['multiCropEval']) - 1))
-                    mdlParams['cropPositions'][u, ind, 1] = mdlParams['input_size'][1] / 2 + j * (
-                            (height - mdlParams['input_size'][0]) / (np.sqrt(mdlParams['multiCropEval']) - 1))
-                    # mdlParams['imSizes'][u,ind,0] = curr_im_size[0]
+                    mdlParams['cropPositions'][u,ind,0] = mdlParams['input_size'][0]/2+i*((width-mdlParams['input_size'][1])/(np.sqrt(mdlParams['multiCropEval'])-1))
+                    mdlParams['cropPositions'][u,ind,1] = mdlParams['input_size'][1]/2+j*((height-mdlParams['input_size'][0])/(np.sqrt(mdlParams['multiCropEval'])-1))
+                    #mdlParams['imSizes'][u,ind,0] = curr_im_size[0]
 
                     ind += 1
         # Sanity checks
-        # print("Positions",mdlParams['cropPositions'])
+        #print("Positions",mdlParams['cropPositions'])
         # Test image sizes
         height = mdlParams['input_size'][0]
         width = mdlParams['input_size'][1]
         for u in range(len(mdlParams['im_paths'])):
             height_test, width_test = imagesize.get(mdlParams['im_paths'][u])
             if width_test < mdlParams['input_size'][0]:
-                height_test = int(mdlParams['input_size'][0] / float(width_test)) * height_test
+                height_test = int(mdlParams['input_size'][0]/float(width_test))*height_test
                 width_test = mdlParams['input_size'][0]
             if height_test < mdlParams['input_size'][0]:
-                width_test = int(mdlParams['input_size'][0] / float(height_test)) * width_test
+                width_test = int(mdlParams['input_size'][0]/float(height_test))*width_test
                 height_test = mdlParams['input_size'][0]
-            test_im = np.zeros([width_test, height_test])
+            test_im = np.zeros([width_test,height_test])
             for i in range(mdlParams['multiCropEval']):
-                im_crop = test_im[np.int32(mdlParams['cropPositions'][u, i, 0] - height / 2):np.int32(
-                    mdlParams['cropPositions'][u, i, 0] - height / 2) + height,
-                          np.int32(mdlParams['cropPositions'][u, i, 1] - width / 2):np.int32(
-                              mdlParams['cropPositions'][u, i, 1] - width / 2) + width]
+                im_crop = test_im[np.int32(mdlParams['cropPositions'][u,i,0]-height/2):np.int32(mdlParams['cropPositions'][u,i,0]-height/2)+height,np.int32(mdlParams['cropPositions'][u,i,1]-width/2):np.int32(mdlParams['cropPositions'][u,i,1]-width/2)+width]
                 if im_crop.shape[0] != mdlParams['input_size'][0]:
-                    print("Wrong shape", im_crop.shape[0], mdlParams['im_paths'][u])
+                    print("Wrong shape",im_crop.shape[0],mdlParams['im_paths'][u])
                 if im_crop.shape[1] != mdlParams['input_size'][1]:
-                    print("Wrong shape", im_crop.shape[1], mdlParams['im_paths'][u])
+                    print("Wrong shape",im_crop.shape[1],mdlParams['im_paths'][u])
     return mdlParams

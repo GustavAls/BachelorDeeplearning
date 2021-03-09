@@ -11,15 +11,16 @@ import imagesize
 
 def init(mdlParams_):
     mdlParams = {}
-    # Save summaries and model here
-    mdlParams['saveDir'] = mdlParams_['pathBase']+'/data/isic/'
+    local_path = '/isic2019/'
+    # local_path = '\isic2019\\'
+    mdlParams['saveDir'] = mdlParams_['pathBase']+'/'
     # Data is loaded from here
-    mdlParams['dataDir'] = mdlParams_['pathBase']+'/data/isic/2019'
+    mdlParams['dataDir'] = mdlParams_['pathBase']+local_path
 
     ### Model Selection ###
     mdlParams['model_type'] = 'efficientnet-b0'
     mdlParams['dataset_names'] = ['official']#,'sevenpoint_rez3_ll']
-    mdlParams['file_ending'] = '.png'
+    mdlParams['file_ending'] = '.jpg'
     mdlParams['exclude_inds'] = False
     mdlParams['same_sized_crops'] = False
     mdlParams['multiCropEval'] = 9
@@ -32,7 +33,7 @@ def init(mdlParams_):
     mdlParams['numClasses'] = 9
     mdlParams['no_c9_eval'] = True
     mdlParams['numOut'] = mdlParams['numClasses']
-    mdlParams['numCV'] = 5
+    mdlParams['numCV'] = 1
     mdlParams['trans_norm_first'] = True
     # Deterministic cropping
     mdlParams['deterministic_eval'] = True
@@ -236,20 +237,20 @@ def init(mdlParams_):
         all_inds = np.arange(len(mdlParams['im_paths']))
         exclude_inds = all_inds[exclude_list.astype(bool)]
         for i in range(len(mdlParams['trainIndCV'])):
-            mdlParams['trainIndCV'][i] = np.setdiff1d(mdlParams['trainIndCV'][i],exclude_inds)
+            mdlParams['trainIndCV'] = np.setdiff1d(mdlParams['trainIndCV'],exclude_inds)
         for i in range(len(mdlParams['valIndCV'])):
-            mdlParams['valIndCV'][i] = np.setdiff1d(mdlParams['valIndCV'][i],exclude_inds)
+            mdlParams['valIndCV'] = np.setdiff1d(mdlParams['valIndCV'],exclude_inds)
     # Consider case with more than one set
     if len(mdlParams['dataset_names']) > 1:
         restInds = np.array(np.arange(25331,mdlParams['labels_array'].shape[0]))
         for i in range(mdlParams['numCV']):
-            mdlParams['trainIndCV'][i] = np.concatenate((mdlParams['trainIndCV'][i],restInds))
+            mdlParams['trainIndCV'] = np.concatenate((mdlParams['trainIndCV'],restInds))
     print("Train")
-    for i in range(len(mdlParams['trainIndCV'])):
-        print(mdlParams['trainIndCV'][i].shape)
-    print("Val")
-    for i in range(len(mdlParams['valIndCV'])):
-        print(mdlParams['valIndCV'][i].shape)
+    # for i in range(len(mdlParams['trainIndCV'])):
+    #     print(mdlParams['trainIndCV'][i].shape)
+    # print("Val")
+    # for i in range(len(mdlParams['valIndCV'])):
+    #     print(mdlParams['valIndCV'][i].shape)
 
     # Use this for ordered multi crops
     if mdlParams['orderedCrop']:
