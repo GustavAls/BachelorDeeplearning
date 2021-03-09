@@ -30,7 +30,7 @@ def init(mdlParams_):
     mdlParams['classification'] = True
     mdlParams['balance_classes'] = 9
     mdlParams['extra_fac'] = 1.0
-    mdlParams['numClasses'] = 9
+    mdlParams['numClasses'] = 8
     mdlParams['no_c9_eval'] = True
     mdlParams['numOut'] = mdlParams['numClasses']
     mdlParams['numCV'] = 1
@@ -45,7 +45,7 @@ def init(mdlParams_):
     mdlParams['multiCropEval'] = mdlParams['numCropPositions']*len(mdlParams['cropScales'])*mdlParams['cropFlipping']
     mdlParams['offset_crop'] = 0.2
     # Scale up for b1-b7
-    mdlParams['input_size'] = [224,224,3]
+    mdlParams['input_size'] = [240, 240, 3]
 
     ### Training Parameters ###
     # Batch size
