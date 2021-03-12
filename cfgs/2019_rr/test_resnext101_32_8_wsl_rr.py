@@ -11,29 +11,39 @@ import imagesize
 
 def init(mdlParams_):
     mdlParams = {}
-    # Save summaries and model here
-    mdlParams['saveDir'] = mdlParams_['pathBase']+'/data/isic/'
+    local_path = '/isic2019/'
+    # local_path = '\isic2019\\'
+    mdlParams['saveDir'] = mdlParams_['pathBase']+'/'
     # Data is loaded from here
-    mdlParams['dataDir'] = mdlParams_['pathBase']+'/data/isic/2019'
+    mdlParams['dataDir'] = mdlParams_['pathBase']+local_path
 
     ### Model Selection ###
-    mdlParams['model_type'] = 'efficientnet-b0'
+    mdlParams['model_type'] = 'resnext101_32_8_wsl'
     mdlParams['dataset_names'] = ['official']#,'sevenpoint_rez3_ll']
     mdlParams['file_ending'] = '.jpg'
     mdlParams['exclude_inds'] = False
-    mdlParams['same_sized_crops'] = True
+    mdlParams['same_sized_crops'] = False
     mdlParams['multiCropEval'] = 9
-    mdlParams['var_im_size'] = True
-    mdlParams['orderedCrop'] = True
+    mdlParams['var_im_size'] = False
+    mdlParams['orderedCrop'] = False
     mdlParams['voting_scheme'] = 'average'
     mdlParams['classification'] = True
     mdlParams['balance_classes'] = 9
     mdlParams['extra_fac'] = 1.0
-    mdlParams['numClasses'] = 9
+    mdlParams['numClasses'] = 8
     mdlParams['no_c9_eval'] = True
     mdlParams['numOut'] = mdlParams['numClasses']
-    mdlParams['numCV'] = 5
+    mdlParams['numCV'] = 1
     mdlParams['trans_norm_first'] = True
+    # Deterministic cropping
+    mdlParams['deterministic_eval'] = True
+    mdlParams['numCropPositions'] = 1
+    num_scales = 4
+    all_scales = [1.0,0.5,0.75,0.25,0.9,0.6,0.4]
+    mdlParams['cropScales'] = all_scales[:num_scales]
+    mdlParams['cropFlipping'] = 4
+    mdlParams['multiCropEval'] = mdlParams['numCropPositions']*len(mdlParams['cropScales'])*mdlParams['cropFlipping']
+    mdlParams['offset_crop'] = 0.2
     # Scale up for b1-b7
     mdlParams['input_size'] = [224,224,3]
 
@@ -217,6 +227,7 @@ def init(mdlParams_):
                 print(i+1,"images processed for mean...")
 
     ### Define Indices ###
+    # Just divide into 5 equally large sets
     with open(mdlParams['saveDir'] + 'indices_isic2019.pkl','rb') as f:
         indices = pickle.load(f)
     mdlParams['trainIndCV'] = indices['trainIndCV']
@@ -226,20 +237,20 @@ def init(mdlParams_):
         all_inds = np.arange(len(mdlParams['im_paths']))
         exclude_inds = all_inds[exclude_list.astype(bool)]
         for i in range(len(mdlParams['trainIndCV'])):
-            mdlParams['trainIndCV'][i] = np.setdiff1d(mdlParams['trainIndCV'][i],exclude_inds)
+            mdlParams['trainIndCV'] = np.setdiff1d(mdlParams['trainIndCV'],exclude_inds)
         for i in range(len(mdlParams['valIndCV'])):
-            mdlParams['valIndCV'][i] = np.setdiff1d(mdlParams['valIndCV'][i],exclude_inds)
+            mdlParams['valIndCV'] = np.setdiff1d(mdlParams['valIndCV'],exclude_inds)
     # Consider case with more than one set
     if len(mdlParams['dataset_names']) > 1:
         restInds = np.array(np.arange(25331,mdlParams['labels_array'].shape[0]))
         for i in range(mdlParams['numCV']):
-            mdlParams['trainIndCV'][i] = np.concatenate((mdlParams['trainIndCV'][i],restInds))
+            mdlParams['trainIndCV'] = np.concatenate((mdlParams['trainIndCV'],restInds))
     print("Train")
-    for i in range(len(mdlParams['trainIndCV'])):
-        print(mdlParams['trainIndCV'][i].shape)
-    print("Val")
-    for i in range(len(mdlParams['valIndCV'])):
-        print(mdlParams['valIndCV'][i].shape)
+    # for i in range(len(mdlParams['trainIndCV'])):
+    #     print(mdlParams['trainIndCV'][i].shape)
+    # print("Val")
+    # for i in range(len(mdlParams['valIndCV'])):
+    #     print(mdlParams['valIndCV'][i].shape)
 
     # Use this for ordered multi crops
     if mdlParams['orderedCrop']:
