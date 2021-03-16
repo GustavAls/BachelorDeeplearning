@@ -138,12 +138,14 @@ def main():
         else:
             mdlParams['saveDir'] = mdlParams['saveDirBase']
         # Create basepath if it doesnt exist yet
+        print(mdlParams['saveDir'])
         if not os.path.isdir(mdlParams['saveDirBase']):
             os.mkdir(mdlParams['saveDirBase'])
         # Check if there is something to load
         load_old = 0
         if os.path.isdir(mdlParams['saveDir']):
             # Check if a checkpoint is in there
+            print("i got here" + str(147))
             if len([name for name in os.listdir(mdlParams['saveDir'])]) > 0:
                 load_old = 1
                 print("Loading old model")
@@ -450,6 +452,7 @@ def main():
         print("Start training...")
         for step in range(start_epoch, mdlParams['training_steps'] + 1):
             # One Epoch of training
+            print(step)
             if step >= mdlParams['lowerLRat'] - mdlParams['lowerLRAfter']:
                 modelVars['scheduler'].step()
             modelVars['model'].train()
@@ -494,7 +497,7 @@ def main():
                     loss.backward()
                     modelVars['optimizer'].step()
                     # print("backward",time.time()-t_bwd)
-            if step % mdlParams['display_step'] == 0 or step == 1:
+            if step % mdlParams['display_step'] == 0 or step == 1 or step == 101:
                 # Calculate evaluation metrics
                 if mdlParams['classification']:
                     # Adjust model state
