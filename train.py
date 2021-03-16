@@ -138,13 +138,11 @@ def main():
         else:
             mdlParams['saveDir'] = mdlParams['saveDirBase']
         # Create basepath if it doesnt exist yet
-        print(mdlParams['saveDir'] + " at line " +str(141))
         if not os.path.isdir(mdlParams['saveDirBase']):
             os.mkdir(mdlParams['saveDirBase'])
         # Check if there is something to load
         load_old = 0
         if os.path.isdir(mdlParams['saveDir']):
-            print("we made it here to line" + str(147))
             # Check if a checkpoint is in there
             if len([name for name in os.listdir(mdlParams['saveDir'])]) > 0:
                 load_old = 1
@@ -413,12 +411,10 @@ def main():
         # loading from checkpoint
         if load_old:
             # Find last, not last best checkpoint
-            mdlParams['saveDir']+'/CVSet0'
             files = glob(mdlParams['saveDir'] + '/*')
             # files = glob(mdlParams['saveDir'] + '\*')
             global_steps = np.zeros([len(files)])
             for i in range(len(files)):
-                print(files[i])
                 # Use meta files to find the highest index
                 if 'best' in files[i]:
                     continue
@@ -453,7 +449,6 @@ def main():
         start_time = time.time()
         print("Start training...")
         for step in range(start_epoch, mdlParams['training_steps'] + 1):
-            print(step)
             # One Epoch of training
             if step >= mdlParams['lowerLRat'] - mdlParams['lowerLRAfter']:
                 modelVars['scheduler'].step()

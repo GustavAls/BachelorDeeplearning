@@ -51,7 +51,7 @@ def init(mdlParams_):
     # Divide learning rate by this value
     mdlParams['LRstep'] = 5
     # Maximum number of training iterations
-    mdlParams['training_steps'] = 100 #250
+    mdlParams['training_steps'] = 150 #250
     # Display error every X steps
     mdlParams['display_step'] = 10
     # Scale?
