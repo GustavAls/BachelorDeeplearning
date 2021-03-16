@@ -24,7 +24,7 @@ def init(mdlParams_):
     mdlParams['file_ending'] = '.jpg'
     mdlParams['exclude_inds'] = False
     mdlParams['same_sized_crops'] = True
-    mdlParams['multiCropEval'] = 9
+    mdlParams['multiCropEval'] = 20
     mdlParams['var_im_size'] = True
     mdlParams['orderedCrop'] = True
     mdlParams['voting_scheme'] = 'average'
@@ -51,7 +51,7 @@ def init(mdlParams_):
     # Divide learning rate by this value
     mdlParams['LRstep'] = 5
     # Maximum number of training iterations
-    mdlParams['training_steps'] = 100  # 250
+    mdlParams['training_steps'] = 150  # 250
     # Display error every X steps
     mdlParams['display_step'] = 10
     # Scale?
@@ -236,7 +236,7 @@ def init(mdlParams_):
     with open(mdlParams['saveDir'] + 'indices_isic2019.pkl', 'rb') as f:
         indices = pickle.load(f)
     mdlParams['trainIndCV'] = indices['trainIndCV']
-    mdlParams['valIndCV'] = indices['valIndCV']
+    # mdlParams['valIndCV'] = indices['valIndCV']
     if mdlParams['exclude_inds']:
         exclude_list = np.array(exclude_list)
         all_inds = np.arange(len(mdlParams['im_paths']))

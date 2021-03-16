@@ -235,13 +235,13 @@ def main():
         # For train
         dataset_train = utils.ISICDataset(mdlParams, 'trainInd')
         # For val
-        dataset_val = utils.ISICDataset(mdlParams, 'valInd')
-        if mdlParams['multiCropEval'] > 0:
-            modelVars['dataloader_valInd'] = DataLoader(dataset_val, batch_size=mdlParams['multiCropEval'], shuffle=False,
-                                                        num_workers=num_workers, pin_memory=True)
-        else:
-            modelVars['dataloader_valInd'] = DataLoader(dataset_val, batch_size=mdlParams['batchSize'], shuffle=False,
-                                                        num_workers=num_workers, pin_memory=True)
+        # dataset_val = utils.ISICDataset(mdlParams, 'valInd')
+        # if mdlParams['multiCropEval'] > 0:
+        #     modelVars['dataloader_valInd'] = DataLoader(dataset_val, batch_size=mdlParams['multiCropEval'], shuffle=False,
+        #                                                 num_workers=num_workers, pin_memory=True)
+        # else:
+        #     modelVars['dataloader_valInd'] = DataLoader(dataset_val, batch_size=mdlParams['batchSize'], shuffle=False,
+        #                                                 num_workers=num_workers, pin_memory=True)
 
         if mdlParams['balance_classes'] == 12 or mdlParams['balance_classes'] == 13:
             # print(np.argmax(mdlParams['labels_array'][mdlParams['trainInd'],:],1).size(0))
@@ -411,6 +411,7 @@ def main():
         # loading from checkpoint
         if load_old:
             # Find last, not last best checkpoint
+            mdlParams['saveDir'] = mdlParams['saveDir'] + '/CVSet0'
             files = glob(mdlParams['saveDir'] + '/*')
             # files = glob(mdlParams['saveDir'] + '\*')
             global_steps = np.zeros([len(files)])
