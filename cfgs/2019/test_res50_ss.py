@@ -31,7 +31,7 @@ def init(mdlParams_):
     mdlParams['classification'] = True
     mdlParams['balance_classes'] = 9
     mdlParams['extra_fac'] = 1.0
-    mdlParams['numClasses'] = 9
+    mdlParams['numClasses'] = 8
     mdlParams['no_c9_eval'] = True
     mdlParams['numOut'] = mdlParams['numClasses']
     mdlParams['numCV'] = 1
@@ -227,7 +227,8 @@ def init(mdlParams_):
     with open(mdlParams['saveDir'] + 'indices_isic2019.pkl','rb') as f:
         indices = pickle.load(f)
     mdlParams['trainIndCV'] = indices['trainIndCV']
-    # mdlParams['valIndCV'] = indices['valIndCV']
+    mdlParams['valIndCV'] = indices['valIndCV']
+    print(indices.keys())
     if mdlParams['exclude_inds']:
         exclude_list = np.array(exclude_list)
         all_inds = np.arange(len(mdlParams['im_paths']))

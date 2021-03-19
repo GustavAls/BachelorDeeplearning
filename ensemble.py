@@ -14,14 +14,15 @@ import copy
 
 
 # Just assume fixed CV size for ensemble with evaluation
-cvSize = 5
+cvSize = 1
 numClasses = 8
 
 # First argument is folder, filled with CV results files
 all_preds_path = sys.argv[1]
-
+print(sys.argv[2])
 # Second argument indicates, whether we are only generating predictions or actually evaluating performance on something
 if 'eval' in sys.argv[2]:
+
     evaluate = True
     # Determin if vote or average is used
     if 'vote' in sys.argv[2]:
@@ -32,10 +33,11 @@ if 'eval' in sys.argv[2]:
     if 'exhaust' in sys.argv[2]:
         exhaustive_search = True
         num_top_models = [int(s) for s in re.findall(r'\d+',sys.argv[2])][-1]
+
     else:
         exhaustive_search = False
     # Third argument indicates where subset should be saved
-    if 'subSet' in sys.argv[3]:
+    if "best_model" in sys.argv[3]:
         subSetPath = sys.argv[3]
     else:
         subSetPath = None
@@ -210,9 +212,10 @@ if evaluate:
         allWaccsSrt = -np.sort(-np.array(allWaccs))
         srtInds = np.argsort(-np.array(allWaccs))
         allCombsSrt = np.array(allCombs)[srtInds]
-        for i in range(5):
+        for i in range(10):
             print("Top",i+1)
             print("Best WACC",allWaccsSrt[i])
+
             wacc, wacc_std, auc_val, auc_val_std = evalEnsemble(allCombsSrt[i],eval_auc=True)
             print("Metrics WACC %.4f +- %.4f AUC %.4f +- %.4f"%(wacc,wacc_std,auc_val,auc_val_std))
             print("Best Combination:",allCombsSrt[i])
