@@ -99,7 +99,7 @@ if 'multi' in sys.argv[3]:
         mdlParams['offset_crop'] = 0.2
     elif 'order' in sys.argv[3]:
         mdlParams['orderedCrop'] = True
-        if mdlParams.get('var_im_size', False):
+        if mdlParams.get('var_im_size', True):
             # Crop positions, always choose multiCropEval to be 4, 9, 16, 25, etc.
             mdlParams['cropPositions'] = np.zeros([len(mdlParams['im_paths']), mdlParams['multiCropEval'], 2],
                                                   dtype=np.int64)
@@ -263,42 +263,18 @@ if not (len(sys.argv) > 8):
             mdlParams['valInd'] = np.intersect1d(mdlParams['valInd'], mdlParams['HAM10000_inds'])
             print("New val inds, HAM only", len(mdlParams['valInd']))
 
-        # balance classes
-        if mdlParams['balance_classes'] < 3 or mdlParams['balance_classes'] == 7 or mdlParams['balance_classes'] == 11:
-            class_weights = class_weight.compute_class_weight('balanced', np.unique(
-                np.argmax(mdlParams['labels_array'][mdlParams['trainInd'], :], 1)), np.argmax(
-                mdlParams['labels_array'][mdlParams['trainInd'], :], 1))
-            print("Current class weights", class_weights)
-            class_weights = class_weights * mdlParams['extra_fac']
-            print("Current class weights with extra", class_weights)
-        elif mdlParams['balance_classes'] == 3 or mdlParams['balance_classes'] == 4:
-            # Split training set by classes
-            not_one_hot = np.argmax(mdlParams['labels_array'], 1)
-            mdlParams['class_indices'] = []
-            for i in range(mdlParams['numClasses']):
-                mdlParams['class_indices'].append(np.where(not_one_hot == i)[0])
-                # Kick out non-trainind indices
-                mdlParams['class_indices'][i] = np.setdiff1d(mdlParams['class_indices'][i], mdlParams['valInd'])
-                # print("Class",i,mdlParams['class_indices'][i].shape,np.min(mdlParams['class_indices'][i]),np.max(mdlParams['class_indices'][i]),np.sum(mdlParams['labels_array'][np.int64(mdlParams['class_indices'][i]),:],0))
-        elif mdlParams['balance_classes'] == 5 or mdlParams['balance_classes'] == 6 or mdlParams[
-            'balance_classes'] == 13:
-            # Other class balancing loss
-            class_weights = 1.0 / np.mean(mdlParams['labels_array'][mdlParams['trainInd'], :], axis=0)
-            print("Current class weights", class_weights)
-            class_weights = class_weights * mdlParams['extra_fac']
-            print("Current class weights with extra", class_weights)
-        elif mdlParams['balance_classes'] == 9:
+        if mdlParams['balance_classes'] == 9:
             # Only use HAM indicies for calculation
             print("Balance 9")
             indices_ham = mdlParams['trainInd'][mdlParams['trainInd'] < 25331]
             if mdlParams['numClasses'] == 9:
-                class_weights_ = 1.0 / np.mean(mdlParams['labels_array'][indices_ham, :8], axis=0)
+                #Class weights for the AISC dataset
+                class_weights_ = np.array([0.06544445, 0.81089767, 0.02461471, 0.00803448, 0.06332627, 0.008984, 0.01599591, 0.00270251])
                 # print("class before",class_weights_)
                 class_weights = np.zeros([mdlParams['numClasses']])
                 class_weights[:8] = class_weights_
-                class_weights[-1] = np.max(class_weights_)
             else:
-                class_weights = 1.0 / np.mean(mdlParams['labels_array'][indices_ham, :], axis=0)
+                class_weights = np.array([0.06544445, 0.81089767, 0.02461471, 0.00803448, 0.06332627, 0.008984, 0.01599591, 0.00270251])
             print("Current class weights", class_weights)
             if isinstance(mdlParams['extra_fac'], float):
                 class_weights = np.power(class_weights, mdlParams['extra_fac'])
@@ -307,11 +283,7 @@ if not (len(sys.argv) > 8):
             print("Current class weights with extra", class_weights)
 
             # Set up dataloaders
-        # Meta scaler
-        if mdlParams.get('meta_features', None) is not None and mdlParams['scale_features']:
-            mdlParams['feature_scaler_meta'] = sklearn.preprocessing.StandardScaler().fit(
-                mdlParams['meta_array'][mdlParams['trainInd'], :])
-            # print("scaler mean",mdlParams['feature_scaler_meta'].mean_,"var",mdlParams['feature_scaler_meta'].var_)
+
         # For train
         dataset_train = utils.ISICDataset(mdlParams, 'trainInd')
         # For val
@@ -353,36 +325,33 @@ if not (len(sys.argv) > 8):
             modelVars['model'].classifier = nn.Conv2d(num_ftrs, mdlParams['numClasses'], [1, 1])
             # modelVars['model'].add_module('real_classifier',nn.Linear(num_ftrs, mdlParams['numClasses']))
             # print(modelVars['model'])
+        elif 'efficient' in mdlParams['model_type'] and (
+                '0' in mdlParams['model_type'] or '1' in mdlParams['model_type'] \
+                or '2' in mdlParams['model_type'] or '3' in mdlParams['model_type']):
+            num_ftrs = modelVars['model'].classifier.in_features
+            modelVars['model'].classifier = nn.Linear(num_ftrs, mdlParams['numClasses'])
+
         elif 'efficient' in mdlParams['model_type']:
-            # Do nothing, output is prepared
             num_ftrs = modelVars['model']._fc.in_features
-            modelVars['model']._fc = nn.Linear(num_ftrs, mdlParams['numClasses'])
-        elif 'wsl' in mdlParams['model_type']:
+            modelVars['model'].classifier = nn.Linear(num_ftrs, mdlParams['numClasses'])
+
+        elif 'wsl' in mdlParams['model_type'] or 'Resnet' in mdlParams['model_type'] or 'Inception' in mdlParams[
+            'model_type']:
+            # Do nothing, output is prepared
             num_ftrs = modelVars['model'].fc.in_features
             modelVars['model'].fc = nn.Linear(num_ftrs, mdlParams['numClasses'])
         else:
             num_ftrs = modelVars['model'].last_linear.in_features
             modelVars['model'].last_linear = nn.Linear(num_ftrs, mdlParams['numClasses'])
-            # modify model
+            # Take care of meta case
         if mdlParams.get('meta_features', None) is not None:
             modelVars['model'] = models.modify_meta(mdlParams, modelVars['model'])
         modelVars['model'] = modelVars['model'].to(modelVars['device'])
         # summary(modelVars['model'], (mdlParams['input_size'][2], mdlParams['input_size'][0], mdlParams['input_size'][1]))
         # Loss, with class weighting
         # Loss, with class weighting
-        if mdlParams['balance_classes'] == 3 or mdlParams['balance_classes'] == 0 or mdlParams['balance_classes'] == 12:
-            modelVars['criterion'] = nn.CrossEntropyLoss()
-        elif mdlParams['balance_classes'] == 8:
-            modelVars['criterion'] = nn.CrossEntropyLoss(reduce=False)
-        elif mdlParams['balance_classes'] == 6 or mdlParams['balance_classes'] == 7:
-            modelVars['criterion'] = nn.CrossEntropyLoss(
-                weight=torch.cuda.FloatTensor(class_weights.astype(np.float32)), reduce=False)
-        elif mdlParams['balance_classes'] == 10:
-            modelVars['criterion'] = utils.FocalLoss(mdlParams['numClasses'])
-        elif mdlParams['balance_classes'] == 11:
-            modelVars['criterion'] = utils.FocalLoss(mdlParams['numClasses'],
-                                                     alpha=torch.cuda.FloatTensor(class_weights.astype(np.float32)))
-        else:
+
+        if mdlParams['balance_classes'] == 9:
             modelVars['criterion'] = nn.CrossEntropyLoss(
                 weight=torch.cuda.FloatTensor(class_weights.astype(np.float32)))
 
@@ -504,39 +473,6 @@ if len(sys.argv) > 8:
         modelVars['device'] = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         # define new folder, take care that there might be no labels
         print("Creating predictions for path ", sys.argv[8])
-        # Add meta data
-        if mdlParams.get('meta_features', None) is not None:
-            mdlParams['meta_dict'] = {}
-            path1 = mdlParams['dataDir'] + '/meta_data/test_rez3_ll/meta_data_test.pkl'
-            # Open and load
-            with open(path1, 'rb') as f:
-                meta_data = pickle.load(f)
-            # Write into dict
-            for k in range(len(meta_data['im_name'])):
-                feature_vector = []
-                if 'age_oh' in mdlParams['meta_features']:
-                    if mdlParams['encode_nan']:
-                        feature_vector.append(meta_data['age_oh'][k, :])
-                    else:
-                        feature_vector.append(meta_data['age_oh'][k, 1:])
-                if 'age_num' in mdlParams['meta_features']:
-                    feature_vector.append(np.array([meta_data['age_num'][k]]))
-                if 'loc_oh' in mdlParams['meta_features']:
-                    if mdlParams['encode_nan']:
-                        feature_vector.append(meta_data['loc_oh'][k, :])
-                    else:
-                        feature_vector.append(meta_data['loc_oh'][k, 1:])
-                if 'sex_oh' in mdlParams['meta_features']:
-                    if mdlParams['encode_nan']:
-                        feature_vector.append(meta_data['sex_oh'][k, :])
-                    else:
-                        feature_vector.append(meta_data['sex_oh'][k, 1:])
-
-                        # print(feature_vector)
-                feature_vector = np.concatenate(feature_vector, axis=0)
-                # print("feature vector shape",feature_vector.shape)
-                mdlParams['meta_dict'][meta_data['im_name'][k]] = feature_vector
-                # Define the path
         path1 = sys.argv[8]
         # All files in that set
         files = sorted(glob(path1 + '/*'))
@@ -545,8 +481,8 @@ if len(sys.argv) > 8:
         mdlParams['meta_list'] = []
         for j in range(len(files)):
             inds = [int(s) for s in re.findall(r'\d+', files[j])]
+            mdlParams['im_paths'].append(files[j])
             if 'ISIC_' in files[j]:
-                mdlParams['im_paths'].append(files[j])
                 if mdlParams.get('meta_features', None) is not None:
                     for key in mdlParams['meta_dict']:
                         if key in files[j]:
@@ -588,7 +524,8 @@ if len(sys.argv) > 8:
             # Sanity checks
             # print("Positions",mdlParams['cropPositions'])
             # Test image sizes
-            test_im = np.zeros(mdlParams['input_size_load'])
+            # test_im = np.zeros(mdlParams['input_size_load'])
+            test_im = np.zeros(mdlParams['input_size'])
             height = mdlParams['input_size'][0]
             width = mdlParams['input_size'][1]
             for u in range(len(mdlParams['im_paths'])):
@@ -613,42 +550,22 @@ if len(sys.argv) > 8:
                     if im_crop.shape[1] != mdlParams['input_size'][1]:
                         print("Wrong shape", im_crop.shape[1], mdlParams['im_paths'][u])
         mdlParams['saveDir'] = mdlParams['saveDirBase'] + '/CVSet' + str(cv)
-        # balance classes
-        if mdlParams['balance_classes'] < 3 or mdlParams['balance_classes'] == 7 or mdlParams['balance_classes'] == 11:
-            class_weights = class_weight.compute_class_weight('balanced', np.unique(
-                np.argmax(mdlParams['labels_array'][mdlParams['trainInd'], :], 1)), np.argmax(
-                mdlParams['labels_array'][mdlParams['trainInd'], :], 1))
-            print("Current class weights", class_weights)
-            class_weights = class_weights * mdlParams['extra_fac']
-            print("Current class weights with extra", class_weights)
-        elif mdlParams['balance_classes'] == 3 or mdlParams['balance_classes'] == 4:
-            # Split training set by classes
-            not_one_hot = np.argmax(mdlParams['labels_array'], 1)
-            mdlParams['class_indices'] = []
-            for i in range(mdlParams['numClasses']):
-                mdlParams['class_indices'].append(np.where(not_one_hot == i)[0])
-                # Kick out non-trainind indices
-                mdlParams['class_indices'][i] = np.setdiff1d(mdlParams['class_indices'][i], mdlParams['valInd'])
-                # print("Class",i,mdlParams['class_indices'][i].shape,np.min(mdlParams['class_indices'][i]),np.max(mdlParams['class_indices'][i]),np.sum(mdlParams['labels_array'][np.int64(mdlParams['class_indices'][i]),:],0))
-        elif mdlParams['balance_classes'] == 5 or mdlParams['balance_classes'] == 6 or mdlParams[
-            'balance_classes'] == 13:
-            # Other class balancing loss
-            class_weights = 1.0 / np.mean(mdlParams['labels_array'][mdlParams['trainInd'], :], axis=0)
-            print("Current class weights", class_weights)
-            class_weights = class_weights * mdlParams['extra_fac']
-            print("Current class weights with extra", class_weights)
-        elif mdlParams['balance_classes'] == 9:
-            # Only use official indicies for calculation
+
+        if mdlParams['balance_classes'] == 9:
+            # Only use HAM indicies for calculation
             print("Balance 9")
             indices_ham = mdlParams['trainInd'][mdlParams['trainInd'] < 25331]
             if mdlParams['numClasses'] == 9:
-                class_weights_ = 1.0 / np.mean(mdlParams['labels_array'][indices_ham, :8], axis=0)
+                # Class weights for the AISC dataset
+                class_weights_ = np.array(
+                    [0.06544445, 0.81089767, 0.02461471, 0.00803448, 0.06332627, 0.008984, 0.01599591, 0.00270251])
                 # print("class before",class_weights_)
                 class_weights = np.zeros([mdlParams['numClasses']])
                 class_weights[:8] = class_weights_
-                class_weights[-1] = np.max(class_weights_)
             else:
-                class_weights = 1.0 / np.mean(mdlParams['labels_array'][indices_ham, :], axis=0)
+                # Class weights for the AISC dataset
+                class_weights = np.array(
+                    [0.06544445, 0.81089767, 0.02461471, 0.00803448, 0.06332627, 0.008984, 0.01599591, 0.00270251])
             print("Current class weights", class_weights)
             if isinstance(mdlParams['extra_fac'], float):
                 class_weights = np.power(class_weights, mdlParams['extra_fac'])
@@ -657,6 +574,7 @@ if len(sys.argv) > 8:
             print("Current class weights with extra", class_weights)
 
             # Set up dataloaders
+
         # Meta scaler
         if mdlParams.get('meta_features', None) is not None and mdlParams['scale_features']:
             mdlParams['feature_scaler_meta'] = sklearn.preprocessing.StandardScaler().fit(
@@ -689,36 +607,32 @@ if len(sys.argv) > 8:
             modelVars['model'].classifier = nn.Conv2d(num_ftrs, mdlParams['numClasses'], [1, 1])
             # modelVars['model'].add_module('real_classifier',nn.Linear(num_ftrs, mdlParams['numClasses']))
             # print(modelVars['model'])
+        elif 'efficient' in mdlParams['model_type'] and (
+                '0' in mdlParams['model_type'] or '1' in mdlParams['model_type'] \
+                or '2' in mdlParams['model_type'] or '3' in mdlParams['model_type']):
+            num_ftrs = modelVars['model'].classifier.in_features
+            modelVars['model'].classifier = nn.Linear(num_ftrs, mdlParams['numClasses'])
+
         elif 'efficient' in mdlParams['model_type']:
-            # Do nothing, output is prepared
             num_ftrs = modelVars['model']._fc.in_features
-            modelVars['model']._fc = nn.Linear(num_ftrs, mdlParams['numClasses'])
-        elif 'wsl' in mdlParams['model_type']:
+            modelVars['model'].classifier = nn.Linear(num_ftrs, mdlParams['numClasses'])
+
+        elif 'wsl' in mdlParams['model_type'] or 'Resnet' in mdlParams['model_type'] or 'Inception' in mdlParams[
+            'model_type']:
+            # Do nothing, output is prepared
             num_ftrs = modelVars['model'].fc.in_features
             modelVars['model'].fc = nn.Linear(num_ftrs, mdlParams['numClasses'])
         else:
             num_ftrs = modelVars['model'].last_linear.in_features
             modelVars['model'].last_linear = nn.Linear(num_ftrs, mdlParams['numClasses'])
-            # modify model
+            # Take care of meta case
         if mdlParams.get('meta_features', None) is not None:
             modelVars['model'] = models.modify_meta(mdlParams, modelVars['model'])
         modelVars['model'] = modelVars['model'].to(modelVars['device'])
         # summary(modelVars['model'], (mdlParams['input_size'][2], mdlParams['input_size'][0], mdlParams['input_size'][1]))
         # Loss, with class weighting
         # Loss, with class weighting
-        if mdlParams['balance_classes'] == 3 or mdlParams['balance_classes'] == 0 or mdlParams['balance_classes'] == 12:
-            modelVars['criterion'] = nn.CrossEntropyLoss()
-        elif mdlParams['balance_classes'] == 8:
-            modelVars['criterion'] = nn.CrossEntropyLoss(reduce=False)
-        elif mdlParams['balance_classes'] == 6 or mdlParams['balance_classes'] == 7:
-            modelVars['criterion'] = nn.CrossEntropyLoss(
-                weight=torch.cuda.FloatTensor(class_weights.astype(np.float32)), reduce=False)
-        elif mdlParams['balance_classes'] == 10:
-            modelVars['criterion'] = utils.FocalLoss(mdlParams['numClasses'])
-        elif mdlParams['balance_classes'] == 11:
-            modelVars['criterion'] = utils.FocalLoss(mdlParams['numClasses'],
-                                                     alpha=torch.cuda.FloatTensor(class_weights.astype(np.float32)))
-        else:
+        if mdlParams['balance_classes'] == 9:
             modelVars['criterion'] = nn.CrossEntropyLoss(
                 weight=torch.cuda.FloatTensor(class_weights.astype(np.float32)))
         # Observe that all parameters are being optimized
@@ -785,5 +699,6 @@ print("Weighted Accuracy", np.array([np.mean(allData['waccBest'])]), "+-",
 print("AUC", np.mean(allData['aucBest'], 0), "+-", np.std(allData['aucBest'], 0))
 print("Mean AUC", np.array([np.mean(allData['aucBest'])]), "+-", np.array([np.std(np.mean(allData['aucBest'], 1))]))
 # Save dict with results
+mdlParams['saveDirBase'] = r'/home/s184400/eval_predictions'
 with open(mdlParams['saveDirBase'] + "/" + pklFileName, 'wb') as f:
     pickle.dump(allData, f, pickle.HIGHEST_PROTOCOL)
