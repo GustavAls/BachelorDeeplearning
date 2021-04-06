@@ -129,9 +129,9 @@ def main():
         modelVars['device'] = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print(modelVars['device'])
         # Def current CV set
-        mdlParams['trainInd'] = mdlParams['trainIndCV'][cv]
+        mdlParams['trainInd'] = mdlParams['trainIndCV']
         if 'valIndCV' in mdlParams:
-            mdlParams['valInd'] = mdlParams['valIndCV'][cv]
+            mdlParams['valInd'] = mdlParams['valIndCV']
         # Def current path for saving stuff
         if 'valIndCV' in mdlParams:
             mdlParams['saveDir'] = mdlParams['saveDirBase'] + '/CVSet' + str(cv)
@@ -184,16 +184,15 @@ def main():
         if mdlParams['balance_classes'] == 9:
             # Only use official indicies for calculation
             print("Balance 9")
-            indices = mdlParams['trainInd'][mdlParams['trainInd'] < 40000]
+            indices_ham = mdlParams['trainInd'][mdlParams['trainInd'] < 25331]
             if mdlParams['numClasses'] == 9:
-                class_weights_ = 1.0 / np.mean(mdlParams['labels_array'][indices, :8], axis=0)
+                class_weights_ = 1.0 / np.mean(mdlParams['labels_array'][indices_ham, :8], axis=0)
                 # print("class before",class_weights_)
                 class_weights = np.zeros([mdlParams['numClasses']])
                 class_weights[:8] = class_weights_
                 class_weights[-1] = np.max(class_weights_)
             else:
-                print(mdlParams['labels_array'])
-                class_weights = 1.0 / np.mean(mdlParams['labels_array'][indices, :], axis=0)
+                class_weights = 1.0 / np.mean(mdlParams['labels_array'][indices_ham, :], axis=0)
             print("Current class weights", class_weights)
             if isinstance(mdlParams['extra_fac'], float):
                 class_weights = np.power(class_weights, mdlParams['extra_fac'])
