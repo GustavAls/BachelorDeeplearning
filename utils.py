@@ -55,8 +55,13 @@ class ISICDataset(Dataset):
         # Potential setMean to deduce from channels
         self.setMean = mdlParams['setMean'].astype(np.float32)
         # Current indSet = 'trainInd'/'valInd'/'testInd'
-        self.indices = mdlParams[indSet]
-        self.indSet = indSet
+        if 'trainIndEval' in indSet:
+            self.indices = mdlParams['trainInd']
+            self.indSetTrainEval = indSet
+            self.indSet = 'trainInd'
+        else:
+            self.indices = mdlParams[indSet]
+            self.indSet = indSet
         # feature scaling for meta
         if mdlParams.get('meta_features',None) is not None and mdlParams['scale_features']:
             self.feature_scaler = mdlParams['feature_scaler_meta']
@@ -160,7 +165,7 @@ class ISICDataset(Dataset):
             # Set up transforms
             self.norm = transforms.Normalize(np.float32(self.mdlParams['setMean']),np.float32(self.mdlParams['setStd']))
             self.trans = transforms.ToTensor()
-        elif indSet == 'valInd' or indSet == 'testInd':
+        elif indSet == 'valInd' or indSet == 'testInd' or indSet == 'trainIndEval':
             if self.multiCropEval == 0:
                 if self.only_downsmaple:
                     self.cropping = transforms.Resize(self.input_size)
@@ -189,8 +194,8 @@ class ISICDataset(Dataset):
                                 ind += 1
                     # Complete labels array, only for current indSet, repeat for multiordercrop
                     print("crops per image",total_len_per_im)
-                    self.cropPositions = np.tile(self.cropPositions, (mdlParams[indSet].shape[0],1))
-                    inds_rep = np.repeat(mdlParams[indSet], total_len_per_im)
+                    self.cropPositions = np.tile(self.cropPositions, (mdlParams[self.indSet].shape[0],1))
+                    inds_rep = np.repeat(mdlParams[self.indSet], total_len_per_im)
                     self.labels = mdlParams['labels_array'][inds_rep,:]
                     # meta
                     if mdlParams.get('meta_features',None) is not None:
@@ -327,7 +332,7 @@ class ISICDataset(Dataset):
                 # Normalize
                 x = self.norm(x)
             #print("After",x.size())
-        elif self.indSet == 'valInd' or self.indSet == 'testInd':
+        elif self.indSet == 'valInd' or self.indSet == 'testInd' or self.indSetTrainEval == 'trainIndEval':
             if self.mdlParams.get('deterministic_eval',False):
                 crop = self.cropPositions[idx,0]
                 scale = self.cropPositions[idx,1]
@@ -555,11 +560,6 @@ def getErrClassification_mgpu(mdlParams, indices, modelVars, exclude_class=None)
       spec: float, specificity
       conf: float matrix, confusion matrix
     """
-    # Set up sizes
-    if indices == 'trainInd':
-        numBatches = int(math.floor(len(mdlParams[indices])/mdlParams['batchSize']/len(mdlParams['numGPUs'])))
-    else:
-        numBatches = int(math.ceil(len(mdlParams[indices])/mdlParams['batchSize']/len(mdlParams['numGPUs'])))
     # Consider multi-crop case
     if mdlParams.get('eval_flipping',0) > 1 and mdlParams.get('multiCropEval',0) > 0:
         #loss_all = np.zeros([numBatches])
@@ -620,12 +620,18 @@ def getErrClassification_mgpu(mdlParams, indices, modelVars, exclude_class=None)
             predictions = np.mean(predictions_mc,2)
     elif mdlParams.get('multiCropEval',0) > 0:
         #loss_all = np.zeros([numBatches])
+        if 'trainIndEval':
+            dataloader_indices = indices
+            indices = 'trainInd'
+        else:
+            dataloader_indices = indices
         predictions = np.zeros([len(mdlParams[indices]),mdlParams['numClasses']])
         targets = np.zeros([len(mdlParams[indices]),mdlParams['numClasses']])
         loss_mc = np.zeros([len(mdlParams[indices])])
+
         predictions_mc = np.zeros([len(mdlParams[indices]),mdlParams['numClasses'],mdlParams['multiCropEval']])
         targets_mc = np.zeros([len(mdlParams[indices]),mdlParams['numClasses'],mdlParams['multiCropEval']])
-        for i, (inputs, labels, inds) in enumerate(modelVars['dataloader_'+indices]):
+        for i, (inputs, labels, inds) in enumerate(modelVars['dataloader_'+dataloader_indices]):
             # Get data
             if mdlParams.get('meta_features',None) is not None:
                 inputs[0] = inputs[0].cuda()

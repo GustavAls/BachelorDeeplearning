@@ -210,6 +210,7 @@ def main():
         num_workers = psutil.cpu_count(logical=False)
         # For train
         dataset_train = utils.ISICDataset(mdlParams, 'trainInd')
+        dataset_train_eval = utils.ISICDataset(mdlParams, 'trainIndEval')
         # For val
         dataset_val = utils.ISICDataset(mdlParams, 'valInd')
         if mdlParams['multiCropEval'] > 0:
@@ -221,6 +222,9 @@ def main():
 
         modelVars['dataloader_trainInd'] = DataLoader(dataset_train, batch_size=mdlParams['batchSize'], shuffle=True,
                                                           num_workers=num_workers, pin_memory=True, drop_last=True)
+
+        modelVars['dataloader_trainIndEval'] = DataLoader(dataset_train_eval, batch_size=mdlParams['multiCropEval'], shuffle=True,
+                                                      num_workers=num_workers, pin_memory=True, drop_last=True)
         # print("Setdiff",np.setdiff1d(mdlParams['trainInd'],mdlParams['trainInd']))
         # Define model
         modelVars['model'] = models.getModel(mdlParams)()
@@ -527,7 +531,7 @@ def main():
                     # Potentially print train err
                     if mdlParams['print_trainerr'] and 'train' not in eval_set:
                         loss, accuracy, sensitivity, specificity, conf_matrix, f1, auc, waccuracy, predictions, targets, _ = utils.getErrClassification_mgpu(
-                            mdlParams, 'trainInd', modelVars)
+                            mdlParams, 'trainIndEval', modelVars)
                         # Save in mat
                         save_dict_train['loss'].append(loss)
                         save_dict_train['acc'].append(accuracy)
@@ -543,8 +547,11 @@ def main():
                         #     os.remove(mdlParams['saveDir'] + '\progression_trainInd.mat')
                         scipy.io.savemat(mdlParams['saveDir'] + '/progression_trainInd.mat', save_dict_train)
                         # scipy.io.savemat(mdlParams['saveDir'] + '\progression_trainInd.mat', save_dict_train)
-                        print("Train loss: ", loss, " Accuracy: ", accuracy, " F1: ", f1)
+                        print("Train loss: ", loss,"Accuracy:" ,accuracy , " F1: ", f1)
+                        print("Per Class Acc", waccuracy, "Weighted Accuracy", np.mean(waccuracy))
                         print("Sensitivity: ", sensitivity, "Specificity", specificity)
+                        print("Confusion Matrix")
+                        print(conf_matrix)
         # Free everything in modelvars
         modelVars.clear()
         # After CV Training: print CV results and save them
