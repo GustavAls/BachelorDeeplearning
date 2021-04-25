@@ -57,3 +57,8 @@ for diag_key, diag_list in diags.items():
         assert(diag_key<0)
     for diag in diag_list:
         diag_dict[diag] = diag_key
+
+
+# number_list = [diag_dict[i] for i in diag_dict.keys()]
+# breakpoint()
+# data['images'][1]['lesion'].keys()

@@ -196,7 +196,7 @@ if evaluate:
         top_inds = np.argsort(-np.array(all_waccs))
         elements = top_inds[:num_top_models]
         allCombs = []
-        for L in range(0, len(elements)+1):
+        for L in range(10, len(elements)+1):
             for subset in itertools.combinations(elements, L):
                 allCombs.append(subset)
                 #print(subset)

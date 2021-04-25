@@ -65,6 +65,7 @@ class data_visualiser:
         self.confusion_matrix = None
         self.rr_list = []
         self.ss_list = []
+        self.confusion_matrix_name = None
 
     def create_pkl_list(self, network_list):
         """
@@ -174,8 +175,10 @@ class data_visualiser:
                     'names': network_names}
 
 
-    def score_metrics(self):
+    def score_metrics(self, confusion_plot_name = None):
         # calculates confusion matrix, weighted accuracy, accuracy and AUC for given pkl
+        if confusion_plot_name is not None:
+            self.confusion_matrix_name = confusion_plot_name
 
         if type(self.pkl['predictions']) is not list:
             self.weighted_accuracy = metrics.balanced_accuracy_score(np.argmax(self.pkl['targets'],1),
@@ -188,7 +191,7 @@ class data_visualiser:
                                                                    np.argmax(self.pkl['predictions'],1))
             self.results = {'ensemble_results': {
                 'weighted_accuracy': self.weighted_accuracy,
-                'accuracy': self.accuracy
+                'accuracy': self.accuracy,
                 'confusion_matrix': self.confusion_matrix
             }}
             self.make_confusion_matrix(cf = self.confusion_matrix,categories=self.labels,cbar = False, figsize=(10,8))
@@ -198,14 +201,21 @@ class data_visualiser:
             self.weighted_accuracy = [metrics.balanced_accuracy_score(np.argmax(preds,1), np.argmax(tags,1))
                                       for preds, tags in zip(self.pkl['predictions'],self.pkl['targets'])]
 
-            self.weighted_accuracy = [metrics.accuracy_score(np.argmax(preds, 1), np.argmax(tags, 1))
+            self.accuracy = [metrics.accuracy_score(np.argmax(preds, 1), np.argmax(tags, 1))
                                       for preds, tags in zip(self.pkl['predictions'], self.pkl['targets'])]
 
-            self.weighted_accuracy = [metrics.confusion_matrix(np.argmax(preds, 1), np.argmax(tags, 1))
+            self.confusion_matrix = [metrics.confusion_matrix(np.argmax(preds, 1), np.argmax(tags, 1))
                                       for preds, tags in zip(self.pkl['predictions'], self.pkl['targets'])]
             self.make_roc_curve()
 
-
+            self.results = {}
+            self.results['weighted_accuracy'] = {}
+            self.results['accuracy'] = {}
+            self.results['confusion_matrix'] = {}
+            for idx, networks in enumerate(self.labels):
+                self.results['weighted_accuracy'][networks] = self.weighted_accuracy[idx]
+                self.results['accuracy'][networks] = self.accuracy[idx]
+                self.results['confusion_matrix'][networks] = self.confusion_matrix[idx]
 
     def make_roc_curve(self):
         tprs = []
@@ -258,6 +268,7 @@ class data_visualiser:
                               figsize=None,
                               cmap='Blues',
                               title=None,
+                              show = True
                               ):
         '''
         This function will make a pretty plot of an sklearn Confusion Matrix cm using a Seaborn heatmap visualization.
@@ -353,7 +364,10 @@ class data_visualiser:
 
         if title:
             plt.title(title)
-        plt.show()
+        if show:
+            plt.show()
+        else:
+            plt.savefig(self.confusion_matrix_name+'.eps',format = 'eps')
 
 
 def main():

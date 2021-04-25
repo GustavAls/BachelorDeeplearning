@@ -257,36 +257,6 @@ if not (len(sys.argv) > 8):
             mdlParams['setMean'] = np.mean(mdlParams['images_means'][mdlParams['trainInd'], :], (0))
             print("Set Mean", mdlParams['setMean'])
 
-            # Potentially only HAM eval
-        if mdlParams.get('eval_on_ham_only', False):
-            print("Old val inds", len(mdlParams['valInd']))
-            mdlParams['valInd'] = np.intersect1d(mdlParams['valInd'], mdlParams['HAM10000_inds'])
-            print("New val inds, HAM only", len(mdlParams['valInd']))
-
-        # balance classes
-        if mdlParams['balance_classes'] < 3 or mdlParams['balance_classes'] == 7 or mdlParams['balance_classes'] == 11:
-            class_weights = class_weight.compute_class_weight('balanced', np.unique(
-                np.argmax(mdlParams['labels_array'][mdlParams['trainInd'], :], 1)), np.argmax(
-                mdlParams['labels_array'][mdlParams['trainInd'], :], 1))
-            print("Current class weights", class_weights)
-            class_weights = class_weights * mdlParams['extra_fac']
-            print("Current class weights with extra", class_weights)
-        elif mdlParams['balance_classes'] == 3 or mdlParams['balance_classes'] == 4:
-            # Split training set by classes
-            not_one_hot = np.argmax(mdlParams['labels_array'], 1)
-            mdlParams['class_indices'] = []
-            for i in range(mdlParams['numClasses']):
-                mdlParams['class_indices'].append(np.where(not_one_hot == i)[0])
-                # Kick out non-trainind indices
-                mdlParams['class_indices'][i] = np.setdiff1d(mdlParams['class_indices'][i], mdlParams['valInd'])
-                # print("Class",i,mdlParams['class_indices'][i].shape,np.min(mdlParams['class_indices'][i]),np.max(mdlParams['class_indices'][i]),np.sum(mdlParams['labels_array'][np.int64(mdlParams['class_indices'][i]),:],0))
-        elif mdlParams['balance_classes'] == 5 or mdlParams['balance_classes'] == 6 or mdlParams[
-            'balance_classes'] == 13:
-            # Other class balancing loss
-            class_weights = 1.0 / np.mean(mdlParams['labels_array'][mdlParams['trainInd'], :], axis=0)
-            print("Current class weights", class_weights)
-            class_weights = class_weights * mdlParams['extra_fac']
-            print("Current class weights with extra", class_weights)
         elif mdlParams['balance_classes'] == 9:
             # Only use HAM indicies for calculation
             print("Balance 9")
@@ -370,21 +340,9 @@ if not (len(sys.argv) > 8):
         # summary(modelVars['model'], (mdlParams['input_size'][2], mdlParams['input_size'][0], mdlParams['input_size'][1]))
         # Loss, with class weighting
         # Loss, with class weighting
-        if mdlParams['balance_classes'] == 3 or mdlParams['balance_classes'] == 0 or mdlParams['balance_classes'] == 12:
-            modelVars['criterion'] = nn.CrossEntropyLoss()
-        elif mdlParams['balance_classes'] == 8:
-            modelVars['criterion'] = nn.CrossEntropyLoss(reduce=False)
-        elif mdlParams['balance_classes'] == 6 or mdlParams['balance_classes'] == 7:
-            modelVars['criterion'] = nn.CrossEntropyLoss(
-                weight=torch.cuda.FloatTensor(class_weights.astype(np.float32)), reduce=False)
-        elif mdlParams['balance_classes'] == 10:
-            modelVars['criterion'] = utils.FocalLoss(mdlParams['numClasses'])
-        elif mdlParams['balance_classes'] == 11:
-            modelVars['criterion'] = utils.FocalLoss(mdlParams['numClasses'],
-                                                     alpha=torch.cuda.FloatTensor(class_weights.astype(np.float32)))
-        else:
-            modelVars['criterion'] = nn.CrossEntropyLoss(
-                weight=torch.cuda.FloatTensor(class_weights.astype(np.float32)))
+
+        modelVars['criterion'] = nn.CrossEntropyLoss(
+            weight=torch.cuda.FloatTensor(class_weights.astype(np.float32)))
 
         # Observe that all parameters are being optimized
         modelVars['optimizer'] = optim.Adam(modelVars['model'].parameters(), lr=mdlParams['learning_rate'])
@@ -545,16 +503,13 @@ if len(sys.argv) > 8:
         mdlParams['meta_list'] = []
         for j in range(len(files)):
             inds = [int(s) for s in re.findall(r'\d+', files[j])]
+            mdlParams['im_paths'].append(files[j])
             if 'ISIC_' in files[j]:
-                mdlParams['im_paths'].append(files[j])
                 if mdlParams.get('meta_features', None) is not None:
                     for key in mdlParams['meta_dict']:
                         if key in files[j]:
                             mdlParams['meta_list'].append(mdlParams['meta_dict'][key])
-        if mdlParams.get('meta_features', None) is not None:
-            # Meta data
-            mdlParams['meta_array'] = np.array(mdlParams['meta_list'])
-            # Add empty labels
+
         mdlParams['labels_array'] = np.zeros([len(mdlParams['im_paths']), mdlParams['numClasses']], dtype=np.float32)
         # Define everything as a valind set
         mdlParams['valInd'] = np.array(np.arange(len(mdlParams['im_paths'])))
@@ -614,30 +569,8 @@ if len(sys.argv) > 8:
                         print("Wrong shape", im_crop.shape[1], mdlParams['im_paths'][u])
         mdlParams['saveDir'] = mdlParams['saveDirBase'] + '/CVSet' + str(cv)
         # balance classes
-        if mdlParams['balance_classes'] < 3 or mdlParams['balance_classes'] == 7 or mdlParams['balance_classes'] == 11:
-            class_weights = class_weight.compute_class_weight('balanced', np.unique(
-                np.argmax(mdlParams['labels_array'][mdlParams['trainInd'], :], 1)), np.argmax(
-                mdlParams['labels_array'][mdlParams['trainInd'], :], 1))
-            print("Current class weights", class_weights)
-            class_weights = class_weights * mdlParams['extra_fac']
-            print("Current class weights with extra", class_weights)
-        elif mdlParams['balance_classes'] == 3 or mdlParams['balance_classes'] == 4:
-            # Split training set by classes
-            not_one_hot = np.argmax(mdlParams['labels_array'], 1)
-            mdlParams['class_indices'] = []
-            for i in range(mdlParams['numClasses']):
-                mdlParams['class_indices'].append(np.where(not_one_hot == i)[0])
-                # Kick out non-trainind indices
-                mdlParams['class_indices'][i] = np.setdiff1d(mdlParams['class_indices'][i], mdlParams['valInd'])
-                # print("Class",i,mdlParams['class_indices'][i].shape,np.min(mdlParams['class_indices'][i]),np.max(mdlParams['class_indices'][i]),np.sum(mdlParams['labels_array'][np.int64(mdlParams['class_indices'][i]),:],0))
-        elif mdlParams['balance_classes'] == 5 or mdlParams['balance_classes'] == 6 or mdlParams[
-            'balance_classes'] == 13:
-            # Other class balancing loss
-            class_weights = 1.0 / np.mean(mdlParams['labels_array'][mdlParams['trainInd'], :], axis=0)
-            print("Current class weights", class_weights)
-            class_weights = class_weights * mdlParams['extra_fac']
-            print("Current class weights with extra", class_weights)
-        elif mdlParams['balance_classes'] == 9:
+
+        if mdlParams['balance_classes'] == 9:
             # Only use official indicies for calculation
             print("Balance 9")
             indices_ham = mdlParams['trainInd'][mdlParams['trainInd'] < 25331]
@@ -658,9 +591,7 @@ if len(sys.argv) > 8:
 
             # Set up dataloaders
         # Meta scaler
-        if mdlParams.get('meta_features', None) is not None and mdlParams['scale_features']:
-            mdlParams['feature_scaler_meta'] = sklearn.preprocessing.StandardScaler().fit(
-                mdlParams['meta_array'][mdlParams['trainInd'], :])
+
             # print("scaler mean",mdlParams['feature_scaler_meta'].mean_,"var",mdlParams['feature_scaler_meta'].var_)
         # For train
         dataset_train = utils.ISICDataset(mdlParams, 'trainInd')
@@ -700,27 +631,14 @@ if len(sys.argv) > 8:
             num_ftrs = modelVars['model'].last_linear.in_features
             modelVars['model'].last_linear = nn.Linear(num_ftrs, mdlParams['numClasses'])
             # modify model
-        if mdlParams.get('meta_features', None) is not None:
-            modelVars['model'] = models.modify_meta(mdlParams, modelVars['model'])
-        modelVars['model'] = modelVars['model'].to(modelVars['device'])
+
         # summary(modelVars['model'], (mdlParams['input_size'][2], mdlParams['input_size'][0], mdlParams['input_size'][1]))
         # Loss, with class weighting
         # Loss, with class weighting
-        if mdlParams['balance_classes'] == 3 or mdlParams['balance_classes'] == 0 or mdlParams['balance_classes'] == 12:
-            modelVars['criterion'] = nn.CrossEntropyLoss()
-        elif mdlParams['balance_classes'] == 8:
-            modelVars['criterion'] = nn.CrossEntropyLoss(reduce=False)
-        elif mdlParams['balance_classes'] == 6 or mdlParams['balance_classes'] == 7:
-            modelVars['criterion'] = nn.CrossEntropyLoss(
-                weight=torch.cuda.FloatTensor(class_weights.astype(np.float32)), reduce=False)
-        elif mdlParams['balance_classes'] == 10:
-            modelVars['criterion'] = utils.FocalLoss(mdlParams['numClasses'])
-        elif mdlParams['balance_classes'] == 11:
-            modelVars['criterion'] = utils.FocalLoss(mdlParams['numClasses'],
-                                                     alpha=torch.cuda.FloatTensor(class_weights.astype(np.float32)))
-        else:
-            modelVars['criterion'] = nn.CrossEntropyLoss(
-                weight=torch.cuda.FloatTensor(class_weights.astype(np.float32)))
+
+
+        modelVars['criterion'] = nn.CrossEntropyLoss(
+            weight=torch.cuda.FloatTensor(class_weights.astype(np.float32)))
         # Observe that all parameters are being optimized
         modelVars['optimizer'] = optim.Adam(modelVars['model'].parameters(), lr=mdlParams['learning_rate'])
 

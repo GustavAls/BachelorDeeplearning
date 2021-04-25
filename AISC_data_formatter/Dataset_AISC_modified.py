@@ -17,11 +17,12 @@ from tqdm import tqdm
 import torchvision
 import albumentations as A
 import AISC_2_ISIC
-
+import pandas as pd
+import shutil
 class AISCDataset(torch.utils.data.Dataset):
     def __init__(self, mode, data_path='~/scratch/melanoma/AISC/', new_ext='bmp'):
         assert mode in ['train', 'val', 'all']
-        pickle.dumps(transform)
+        # pickle.dumps(transform)
         data_path = os.path.expanduser(data_path)
         self.data_path = data_path
         self.folder = 'images'
@@ -34,7 +35,7 @@ class AISCDataset(torch.utils.data.Dataset):
         #              'photodermoscopyfollowup', 'photodermoscopyfollowup-cropped']
         #for sub_f in subfolders:
         #    Helpers.convert_to_new_ext(os.path.join(data_path, self.folder, sub_f), new_ext)
-        #data_path_ext = self.data_path.replace('melanoma', 'melanoma_' + new_ext)
+        data_path_ext = self.data_path.replace('Odense_Data', 'Odense_Data_Preprocessed' + new_ext)
         #data_path_ext = der hvor images ligger med præprocessering
         
         self.labels = {}
@@ -42,16 +43,22 @@ class AISCDataset(torch.utils.data.Dataset):
         
         self.lesions = collections.defaultdict(lambda: [])
         self.mcq_lesion_uids = []
+        peter = 0
         for im_dict in self.images_dicts:
             lesion_uid = im_dict['lesion']['uid']
             if 'uncroppedPath' in im_dict:
+
                 im_path = im_dict['uncroppedPath']
             else:
                 im_path= im_dict['croppedPath']
+
         
-            self.im_uid_dict[os.path.split(im_path)[1][:-5]] = im_dict
-            
-            im_path = os.path.join(data_path_ext, im_path.replace('jpeg', new_ext))
+            # self.im_uid_dict[os.path.split(im_path)[1][:-5]] = im_dict
+            self.im_uid_dict[im_dict['uid']] = im_dict
+            im_path = im_path.replace('images', r'C:\Users\ptrkm\Bachelor\Odense_Data_Preprocessed')
+
+            im_path = os.path.join(data_path_ext, im_path)
+
             if im_path.endswith('octet-stream'):
                 print(im_path)
                 print('Lesion UID', lesion_uid)
@@ -60,6 +67,7 @@ class AISCDataset(torch.utils.data.Dataset):
                 self.mcq_lesion_uids.append(lesion_uid)
                 if mode!='all':
                     continue
+
             assert(os.path.exists(im_path))
             self.lesions[lesion_uid].append((im_path, im_dict))
 
@@ -79,7 +87,7 @@ class AISCDataset(torch.utils.data.Dataset):
             lesion_uids[idx1], lesion_uids[idx2] = lesion_uids[idx2], lesion_uids[idx1]
         self.duplicate_image_uids = duplicates
         
-        split_point = int(len(lesion_uids)*.8)
+        split_point = int(len(lesion_uids)*.4)
         lesion_uids = {'train': lesion_uids[:split_point], 
                        'val':   lesion_uids[split_point:],
                        'all':   lesion_uids[:]}[mode]
@@ -113,12 +121,109 @@ class AISCDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.images)
     
-    def __getitem__(self, idx):
+    def __getitem__(self, idx,new_path):
         image_path = self.images[idx]
         image_path = image_path.replace('images', self.folder)
         image_name = os.path.splitext(os.path.split(image_path)[1])[0]
+        image_name2 = os.path.split(image_path)[1]
+        # image = cv2.imread(image_path)
+        new_path = os.path.join(new_path, image_name2)
+        # shutil.copyfile(image_path,new_path)
 
-        image = cv2.imread(image_path)
-        
         label = self.labels[image_name]
-        return image, label
+
+        return label, image_name
+
+validation= AISCDataset(mode = 'val',data_path=r'C:\Users\ptrkm\Bachelor\Odense_Data',new_ext='')
+training = AISCDataset(mode = 'train',data_path=r'C:\Users\ptrkm\Bachelor\Odense_Data',new_ext='')
+isic_label_names = ['MEL', 'NV', 'BCC', 'AK', 'BKL', 'DF', 'VASC', 'SCC']
+labels_frame = np.zeros((len(validation.images),len(isic_label_names)))
+save_path = r'C:\Users\ptrkm\Bachelor\DataFinal'
+imagenames = []
+counter = 0
+for i in range(len(validation.images)):
+    label, image_name = validation.__getitem__(i,save_path)
+    if label != 7:
+        labels_frame[counter,label] = 1
+        counter += 1
+        imagenames.append(image_name)
+
+labels_frame_train = np.zeros((len(training.images),len(isic_label_names)))
+image_names_train = []
+counter = 0
+for idx, image in enumerate(training.images):
+    label, image_name = training.__getitem__(idx,save_path)
+    if label != 7:
+        labels_frame_train[counter,label] = 1
+        counter += 1
+        image_names_train.append(image_name)
+
+labels_frame = labels_frame[:,:-1]
+
+labels_frame = labels_frame[:len(imagenames),:]
+
+labels_frame_train = labels_frame_train[:,:-1]
+labels_frame_train = labels_frame_train[:len(image_names_train),:]
+
+# final_pd = pd.DataFrame(data=labels_frame, columns = isic_label_names)
+# final_pd.insert(loc = 0, column = 'image',value =imagenames)
+# final_pd.to_csv(r'C:\Users\ptrkm\Bachelor\labels_2018.csv',sep = ',', index = False)
+
+num_each = np.floor(np.array([179.03507611, 950.66578425,  97.36995367,45.02051621,227.19655857,  46.06750496,  36.64460622]))
+new_image_list = []
+indices_list = []
+for i in range(labels_frame.shape[1]):
+    indices = np.where(labels_frame[:,i] == 1)[0]
+
+    idx = np.random.choice(indices,int(num_each[i]),replace=False)
+
+    boolan_array = np.array([1 if j in idx else 0 for j,i in enumerate(imagenames)])
+    boolan_array_train = np.array([1 if j not in idx and j in indices else 0 for j,i in enumerate(imagenames)])
+    indices_list += idx.tolist()
+
+    new_image_list += (np.array(imagenames)[boolan_array==1]).tolist()
+    image_names_train += (np.array(imagenames)[boolan_array_train==1]).tolist()
+
+
+labels_aisc_isic = pd.read_csv(r'C:\Users\ptrkm\Bachelor\labels_aisc_isic.csv')
+
+pcl = {}
+pcl['trainIndCV'] = []
+pcl['valIndCV'] = []
+
+labels_list = labels_aisc_isic['image']
+no_go_list = labels_aisc_isic['SCC']
+for j, image in enumerate(labels_list):
+    if image in new_image_list:
+        pcl['valIndCV'].append(j)
+    elif 'ISIC' in image or image in image_names_train:
+        if no_go_list[j] != 1:
+            pcl['trainIndCV'].append(j)
+    if j % 1000 ==0:
+        print(j)
+
+pcl['trainIndCV'] = np.array(pcl['trainIndCV'])
+pcl['valIndCV'] = np.array(pcl['valIndCV'])
+
+with open(r'C:\Users\ptrkm\Bachelor\indices_aisc_plus_isic.pkl','wb') as handle:
+    pickle.dump(pcl,handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+
+
+
+
+
+breakpoint()
+
+
+
+
+
+
+
+
+
+
+
+breakpoint()
