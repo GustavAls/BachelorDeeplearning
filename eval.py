@@ -233,236 +233,6 @@ allData['aucBest_meta'] = np.zeros([mdlParams['numCV'], num_classes])
 allData['bestPred_meta'] = {}
 allData['targets_meta'] = {}
 
-if not (len(sys.argv) > 8):
-    for cv in range(mdlParams['numCV']):
-        # Reset model graph
-        importlib.reload(models)
-        # importlib.reload(torchvision)
-        # Collect model variables
-        modelVars = {}
-        modelVars['device'] = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        print(modelVars['device'])
-        # Def current CV set
-        mdlParams['trainInd'] = mdlParams['trainIndCV'][cv]
-        if 'valIndCV' in mdlParams:
-            mdlParams['valInd'] = mdlParams['valIndCV'][cv]
-        # Def current path for saving stuff
-        if 'valIndCV' in mdlParams:
-            mdlParams['saveDir'] = mdlParams['saveDirBase'] + '/CVSet' + str(cv)
-        else:
-            mdlParams['saveDir'] = mdlParams['saveDirBase']
-
-        # Potentially calculate setMean to subtract
-        if mdlParams['subtract_set_mean'] == 1:
-            mdlParams['setMean'] = np.mean(mdlParams['images_means'][mdlParams['trainInd'], :], (0))
-            print("Set Mean", mdlParams['setMean'])
-
-            # Potentially only HAM eval
-        if mdlParams.get('eval_on_ham_only', False):
-            print("Old val inds", len(mdlParams['valInd']))
-            mdlParams['valInd'] = np.intersect1d(mdlParams['valInd'], mdlParams['HAM10000_inds'])
-            print("New val inds, HAM only", len(mdlParams['valInd']))
-
-        if mdlParams['balance_classes'] == 9:
-            # Only use HAM indicies for calculation
-            print("Balance 9")
-            indices_ham = mdlParams['trainInd'][mdlParams['trainInd'] < 25331]
-            if mdlParams['numClasses'] == 9:
-                #Class weights for the AISC dataset
-                class_weights_ = np.array([0.06544445, 0.81089767, 0.02461471, 0.00803448, 0.06332627, 0.008984, 0.01599591, 0.00270251])
-                # print("class before",class_weights_)
-                class_weights = np.zeros([mdlParams['numClasses']])
-                class_weights[:8] = class_weights_
-            else:
-                class_weights = np.array([0.06544445, 0.81089767, 0.02461471, 0.00803448, 0.06332627, 0.008984, 0.01599591, 0.00270251])
-            print("Current class weights", class_weights)
-            if isinstance(mdlParams['extra_fac'], float):
-                class_weights = np.power(class_weights, mdlParams['extra_fac'])
-            else:
-                class_weights = class_weights * mdlParams['extra_fac']
-            print("Current class weights with extra", class_weights)
-
-            # Set up dataloaders
-
-        # For train
-        dataset_train = utils.ISICDataset(mdlParams, 'trainInd')
-        # For val
-        dataset_val = utils.ISICDataset(mdlParams, 'valInd')
-        if mdlParams['multiCropEval'] > 0:
-            modelVars['dataloader_valInd'] = DataLoader(dataset_val, batch_size=mdlParams['multiCropEval'],
-                                                        shuffle=False, num_workers=8, pin_memory=True)
-        else:
-            modelVars['dataloader_valInd'] = DataLoader(dataset_val, batch_size=mdlParams['batchSize'], shuffle=False,
-                                                        num_workers=8, pin_memory=True)
-
-        modelVars['dataloader_trainInd'] = DataLoader(dataset_train, batch_size=mdlParams['batchSize'], shuffle=True,
-                                                      num_workers=8, pin_memory=True)
-
-        # For test
-        if 'testInd' in mdlParams:
-            dataset_test = utils.ISICDataset(mdlParams, 'testInd')
-            if mdlParams['multiCropEval'] > 0:
-                modelVars['dataloader_testInd'] = DataLoader(dataset_test, batch_size=mdlParams['multiCropEval'],
-                                                             shuffle=False, num_workers=8, pin_memory=True)
-            else:
-                modelVars['dataloader_testInd'] = DataLoader(dataset_test, batch_size=mdlParams['batchSize'],
-                                                             shuffle=False, num_workers=8, pin_memory=True)
-
-        modelVars['model'] = models.getModel(mdlParams)()
-        # Original input size
-        # if 'Dense' not in mdlParams['model_type']:
-        #    print("Original input size",modelVars['model'].input_size)
-        # print(modelVars['model'])
-        if 'Dense' in mdlParams['model_type']:
-            if mdlParams['input_size'][0] != 224:
-                modelVars['model'] = utils.modify_densenet_avg_pool(modelVars['model'])
-                # print(modelVars['model'])
-            num_ftrs = modelVars['model'].classifier.in_features
-            modelVars['model'].classifier = nn.Linear(num_ftrs, mdlParams['numClasses'])
-            # print(modelVars['model'])
-        elif 'dpn' in mdlParams['model_type']:
-            num_ftrs = modelVars['model'].classifier.in_channels
-            modelVars['model'].classifier = nn.Conv2d(num_ftrs, mdlParams['numClasses'], [1, 1])
-            # modelVars['model'].add_module('real_classifier',nn.Linear(num_ftrs, mdlParams['numClasses']))
-            # print(modelVars['model'])
-        elif 'efficient' in mdlParams['model_type'] and (
-                '0' in mdlParams['model_type'] or '1' in mdlParams['model_type'] \
-                or '2' in mdlParams['model_type'] or '3' in mdlParams['model_type']):
-            num_ftrs = modelVars['model'].classifier.in_features
-            modelVars['model'].classifier = nn.Linear(num_ftrs, mdlParams['numClasses'])
-
-        elif 'efficient' in mdlParams['model_type']:
-            num_ftrs = modelVars['model']._fc.in_features
-            modelVars['model'].classifier = nn.Linear(num_ftrs, mdlParams['numClasses'])
-
-        elif 'wsl' in mdlParams['model_type'] or 'Resnet' in mdlParams['model_type'] or 'Inception' in mdlParams[
-            'model_type']:
-            # Do nothing, output is prepared
-            num_ftrs = modelVars['model'].fc.in_features
-            modelVars['model'].fc = nn.Linear(num_ftrs, mdlParams['numClasses'])
-        else:
-            num_ftrs = modelVars['model'].last_linear.in_features
-            modelVars['model'].last_linear = nn.Linear(num_ftrs, mdlParams['numClasses'])
-            # Take care of meta case
-        if mdlParams.get('meta_features', None) is not None:
-            modelVars['model'] = models.modify_meta(mdlParams, modelVars['model'])
-        modelVars['model'] = modelVars['model'].to(modelVars['device'])
-        # summary(modelVars['model'], (mdlParams['input_size'][2], mdlParams['input_size'][0], mdlParams['input_size'][1]))
-        # Loss, with class weighting
-        # Loss, with class weighting
-
-        if mdlParams['balance_classes'] == 9:
-            modelVars['criterion'] = nn.CrossEntropyLoss(
-                weight=torch.cuda.FloatTensor(class_weights.astype(np.float32)))
-
-        # Observe that all parameters are being optimized
-        modelVars['optimizer'] = optim.Adam(modelVars['model'].parameters(), lr=mdlParams['learning_rate'])
-
-        # Decay LR by a factor of 0.1 every 7 epochs
-        modelVars['scheduler'] = lr_scheduler.StepLR(modelVars['optimizer'], step_size=mdlParams['lowerLRAfter'],
-                                                     gamma=1 / np.float32(mdlParams['LRstep']))
-
-        # Define softmax
-        modelVars['softmax'] = nn.Softmax(dim=1)
-
-        # Manually find latest chekcpoint, tf.train.latest_checkpoint is doing weird shit
-        files = glob(mdlParams['saveDir'] + '/*')
-        # print(mdlParams['saveDir'])
-        # print("Files",files)
-        global_steps = np.zeros([len(files)])
-        for i in range(len(files)):
-            # Use meta files to find the highest index
-            if 'checkpoint' not in files[i]:
-                continue
-            if mdlParams['ckpt_name'] not in files[i]:
-                continue
-            # Extract global step
-            nums = [int(s) for s in re.findall(r'\d+', files[i])]
-            global_steps[i] = nums[-1]
-        # Create path with maximum global step found, if first is not wanted
-        global_steps = np.sort(global_steps)
-        if mdlParams.get('use_first') is not None:
-            chkPath = mdlParams['saveDir'] + '/' + mdlParams['ckpt_name'] + str(int(global_steps[-2])) + '.pt'
-        else:
-            chkPath = mdlParams['saveDir'] + '/' + mdlParams['ckpt_name'] + str(int(np.max(global_steps))) + '.pt'
-        print("Restoring: ", chkPath)
-        # Load
-        state = torch.load(chkPath)
-        # Initialize model and optimizer
-        modelVars['model'].load_state_dict(state['state_dict'])
-        # modelVars['optimizer'].load_state_dict(state['optimizer'])
-        # Construct pkl filename: config name, last/best, saved epoch number
-        pklFileName = sys.argv[2] + "_" + sys.argv[6] + "_" + str(int(np.max(global_steps))) + ".pkl"
-        modelVars['model'].eval()
-        if mdlParams['classification']:
-            print("CV Set ", cv + 1)
-            print("------------------------------------")
-            # Training err first, deactivated
-            if 'trainInd' in mdlParams and False:
-                loss, accuracy, sensitivity, specificity, conf_matrix, f1, auc, waccuracy, predictions, targets, _ = utils.getErrClassification_mgpu(
-                    mdlParams, 'trainInd', modelVars)
-                print("Training Results:")
-                print("----------------------------------")
-                print("Loss", np.mean(loss))
-                print("F1 Score", f1)
-                print("Sensitivity", sensitivity)
-                print("Specificity", specificity)
-                print("Accuracy", accuracy)
-                print("Per Class Accuracy", waccuracy)
-                print("Weighted Accuracy", waccuracy)
-                print("AUC", auc)
-                print("Mean AUC", np.mean(auc))
-            if 'valInd' in mdlParams and (len(sys.argv) <= 8):
-                loss, accuracy, sensitivity, specificity, conf_matrix, f1, auc, waccuracy, predictions, targets, predictions_mc = utils.getErrClassification_mgpu(
-                    mdlParams, 'valInd', modelVars)
-                print("Validation Results:")
-                print("----------------------------------")
-                print("Loss", np.mean(loss))
-                print("F1 Score", f1)
-                print("Sensitivity", sensitivity)
-                print("Specificity", specificity)
-                print("Accuracy", accuracy)
-                print("Per Class Accuracy", waccuracy)
-                print("Weighted Accuracy", np.mean(waccuracy))
-                print("AUC", auc)
-                print("Mean AUC", np.mean(auc))
-                # Save results in dict
-                if 'testInd' not in mdlParams:
-                    allData['f1Best'][cv] = f1
-                    allData['sensBest'][cv, :] = sensitivity
-                    allData['specBest'][cv, :] = specificity
-                    allData['accBest'][cv] = accuracy
-                    allData['waccBest'][cv, :] = waccuracy
-                    allData['aucBest'][cv, :] = auc
-                allData['bestPred'][cv] = predictions
-                allData['bestPredMC'][cv] = predictions_mc
-                allData['targets'][cv] = targets
-                print("Pred shape", predictions.shape, "Tar shape", targets.shape)
-            if 'testInd' in mdlParams:
-                loss, accuracy, sensitivity, specificity, conf_matrix, f1, auc, waccuracy, predictions, targets, predictions_mc = utils.getErrClassification_mgpu(
-                    mdlParams, 'testInd', modelVars)
-                print("Test Results Normal:")
-                print("----------------------------------")
-                print("Loss", np.mean(loss))
-                print("F1 Score", f1)
-                print("Sensitivity", sensitivity)
-                print("Specificity", specificity)
-                print("Accuracy", accuracy)
-                print("Per Class Accuracy", waccuracy)
-                print("Weighted Accuracy", np.mean(waccuracy))
-                print("AUC", auc)
-                print("Mean AUC", np.mean(auc))
-                # Save results in dict
-                allData['f1Best'][cv] = f1
-                allData['sensBest'][cv, :] = sensitivity
-                allData['specBest'][cv, :] = specificity
-                allData['accBest'][cv] = accuracy
-                allData['waccBest'][cv, :] = waccuracy
-                allData['aucBest'][cv, :] = auc
-        else:
-
-            print("Not Implemented")
-        # If there is an 8th argument, make extra evaluation for external set
 if len(sys.argv) > 8:
     for cv in range(mdlParams['numCV']):
         # Reset model graph
@@ -554,7 +324,7 @@ if len(sys.argv) > 8:
         if mdlParams['balance_classes'] == 9:
             # Only use HAM indicies for calculation
             print("Balance 9")
-            indices_ham = mdlParams['trainInd'][mdlParams['trainInd'] < 25331]
+            indices_ham = mdlParams['trainInd']
             if mdlParams['numClasses'] == 9:
                 # Class weights for the AISC dataset
                 class_weights_ = np.array(
@@ -581,7 +351,7 @@ if len(sys.argv) > 8:
                 mdlParams['meta_array'][mdlParams['trainInd'], :])
             # print("scaler mean",mdlParams['feature_scaler_meta'].mean_,"var",mdlParams['feature_scaler_meta'].var_)
         # For train
-        dataset_train = utils.ISICDataset(mdlParams, 'trainInd')
+        # dataset_train = utils.ISICDataset(mdlParams, 'trainInd')
         # For val
         dataset_val = utils.ISICDataset(mdlParams, 'valInd')
         if mdlParams['multiCropEval'] > 0:
@@ -590,8 +360,8 @@ if len(sys.argv) > 8:
         else:
             modelVars['dataloader_valInd'] = DataLoader(dataset_val, batch_size=mdlParams['batchSize'], shuffle=False,
                                                         num_workers=8, pin_memory=True)
-        modelVars['dataloader_trainInd'] = DataLoader(dataset_train, batch_size=mdlParams['batchSize'], shuffle=True,
-                                                      num_workers=8, pin_memory=True)
+        # modelVars['dataloader_trainInd'] = DataLoader(dataset_train, batch_size=mdlParams['batchSize'], shuffle=True,
+        #                                               num_workers=8, pin_memory=True)
 
         # Define model
         modelVars['model'] = models.getModel(mdlParams)()

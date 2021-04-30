@@ -19,9 +19,9 @@ def init(mdlParams_):
     mdlParams['dataDir'] = mdlParams_['pathBase']+local_path
 
     ### Model Selection ###
-    mdlParams['model_type'] = 'efficientnet-b1'
+    mdlParams['model_type'] = 'efficientnet-b0'
     mdlParams['dataset_names'] = ['official']  # ,'sevenpoint_rez3_ll']
-    mdlParams['file_ending'] = '.jpg'
+    mdlParams['file_ending'] = '.jpeg'
     mdlParams['exclude_inds'] = False
     mdlParams['same_sized_crops'] = True
     mdlParams['multiCropEval'] = 9
@@ -31,13 +31,13 @@ def init(mdlParams_):
     mdlParams['classification'] = True
     mdlParams['balance_classes'] = 9
     mdlParams['extra_fac'] = 1.0
-    mdlParams['numClasses'] = 8
+    mdlParams['numClasses'] = 7
     mdlParams['no_c9_eval'] = True
     mdlParams['numOut'] = mdlParams['numClasses']
     mdlParams['numCV'] = 1
     mdlParams['trans_norm_first'] = True
     # Scale up for b1-b7
-    mdlParams['input_size'] = [240, 240, 3]
+    mdlParams['input_size'] = [224, 224, 3]
 
     ### Training Parameters ###
     # Batch size
@@ -51,7 +51,7 @@ def init(mdlParams_):
     # Divide learning rate by this value
     mdlParams['LRstep'] = 5
     # Maximum number of training iterations
-    mdlParams['training_steps'] = 150  # 250
+    mdlParams['training_steps'] = 100  # 100
     # Display error every X steps
     mdlParams['display_step'] = 10
     # Scale?
@@ -67,7 +67,7 @@ def init(mdlParams_):
 
     # Data AUG
     # mdlParams['full_color_distort'] = True
-    mdlParams['autoaugment'] = False
+    mdlParams['autoaugment'] = True
     mdlParams['flip_lr_ud'] = False
     mdlParams['full_rot'] = 0
     mdlParams['scale'] = (0.8, 1.2)
@@ -79,7 +79,7 @@ def init(mdlParams_):
     # Labels first
     # Targets, as dictionary, indexed by im file name
     mdlParams['labels_dict'] = {}
-    path1 = mdlParams['dataDir'] + '/labels/'
+    path1 = mdlParams['dataDir'] + '/AISC_ISIC_labels/'
     # path1 = mdlParams['dataDir'] + '\labels\\'
     # All sets
     allSets = glob(path1 + '*/')
@@ -100,6 +100,7 @@ def init(mdlParams_):
                 break
         # Load csv file
         with open(files[j], newline='') as csvfile:
+            print(files[j])
             labels_str = csv.reader(csvfile, delimiter=',', quotechar='|')
             for row in labels_str:
                 if 'image' == row[0]:
@@ -133,11 +134,12 @@ def init(mdlParams_):
                     mdlParams['labels_dict'][row[0]] = np.array(
                         [int(float(row[1])), int(float(row[2])), int(float(row[3])), int(float(row[4])),
                          int(float(row[5])), int(float(row[6])), int(float(row[7])), class_8, class_9])
+    print("Length of labels dict " + str(len(mdlParams['labels_dict'])) + " line 138 cfgs")
     # Save all im paths here
     mdlParams['im_paths'] = []
     mdlParams['labels_list'] = []
     # Define the sets
-    path1 = mdlParams['dataDir'] + '/images/'
+    path1 = mdlParams['dataDir'] + '/AISC_ISIC_images/'
     # path1 = mdlParams['dataDir'] + '\images\\'
     # All sets
     allSets = sorted(glob(path1 + '*/'))
@@ -176,7 +178,7 @@ def init(mdlParams_):
                 # Add according label, find it first
                 found_already = False
                 for key in mdlParams['labels_dict']:
-                    if key + mdlParams['file_ending'] in files[j]:
+                    if key + '.jpeg' in files[j] or key + '.jpg' in files[j]:
                         if found_already:
                             print("Found already:", key, files[j])
                         mdlParams['key_list'].append(key)
@@ -190,20 +192,22 @@ def init(mdlParams_):
                                 exclude_list.append(indices_exclude[key])
     # Convert label list to array
     mdlParams['labels_array'] = np.array(mdlParams['labels_list'])
+    print("Length of labels array " + str(len(mdlParams['labels_array'])))
+    print(mdlParams['labels_array'])
     print(np.mean(mdlParams['labels_array'], axis=0))
     # Create indices list with HAM10000 only
-    mdlParams['HAM10000_inds'] = []
-    HAM_START = 24306
-    HAM_END = 34320
-    for j in range(len(mdlParams['key_list'])):
-        try:
-            curr_id = [int(s) for s in re.findall(r'\d+', mdlParams['key_list'][j])][-1]
-        except:
-            continue
-        if curr_id >= HAM_START and curr_id <= HAM_END:
-            mdlParams['HAM10000_inds'].append(j)
-    mdlParams['HAM10000_inds'] = np.array(mdlParams['HAM10000_inds'])
-    print("Len ham", len(mdlParams['HAM10000_inds']))
+    # mdlParams['HAM10000_inds'] = []
+    # HAM_START = 24306
+    # HAM_END = 34320
+    # for j in range(len(mdlParams['key_list'])):
+    #     try:
+    #         curr_id = [int(s) for s in re.findall(r'\d+', mdlParams['key_list'][j])][-1]
+    #     except:
+    #         continue
+    #     if curr_id >= HAM_START and curr_id <= HAM_END:
+    #         mdlParams['HAM10000_inds'].append(j)
+    # mdlParams['HAM10000_inds'] = np.array(mdlParams['HAM10000_inds'])
+    # print("Len ham", len(mdlParams['HAM10000_inds']))
     # Perhaps preload images
     if mdlParams['preload']:
         mdlParams['images_array'] = np.zeros(
@@ -233,7 +237,7 @@ def init(mdlParams_):
                 print(i + 1, "images processed for mean...")
 
     ### Define Indices ###
-    with open(mdlParams['saveDir'] + 'indices_isic2019_eff1.pkl', 'rb') as f:
+    with open(mdlParams['saveDir'] + 'indices_aisc_plus_isic.pkl', 'rb') as f:
         indices = pickle.load(f)
     mdlParams['trainIndCV'] = indices['trainIndCV']
     mdlParams['valIndCV'] = indices['valIndCV']

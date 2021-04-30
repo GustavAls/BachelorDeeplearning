@@ -3,12 +3,23 @@ import pandas as pd
 import numpy as np
 import os
 
-os.chdir(r'C:\Users\ptrkm\OneDrive\Skrivebord')
-pcl = pickle.load(open(r'C:\Users\ptrkm\OneDrive\Skrivebord\indices_isic2019.pkl', "rb"))
+os.chdir(r'C:\Users\Bruger\Desktop')
+pcl = pickle.load(open(r'C:\Users\Bruger\Desktop\indices_isic2019_one_cv.pkl', "rb"))
+# pcl2 = pickle.load(open(r'C:\Users\Bruger\Desktop\indices_isic2019.pkl', 'rb'))
+
+# isic_train = pcl2['trainIndCV'][0]
+# isic_val = pcl2['valIndCV'][0]
 
 
-train_ind = pcl['trainIndCV'].tolist()
-val_ind = pcl['valIndCV'].tolist()
+train_ind = pcl['trainIndCV']
+val_ind = pcl['valIndCV']
+
+# print(len(np.intersect1d(isic_train, train_ind)))
+# print(len(np.intersect1d(isic_val, val_ind)))
+# print(len(val_ind))
+
+        
+breakpoint()
 
 for i in val_ind:
     if i not in train_ind:

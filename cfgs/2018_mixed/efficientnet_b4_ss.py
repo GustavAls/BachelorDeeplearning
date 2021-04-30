@@ -19,9 +19,9 @@ def init(mdlParams_):
     mdlParams['dataDir'] = mdlParams_['pathBase']+local_path
 
     ### Model Selection ###
-    mdlParams['model_type'] = 'efficientnet-b1'
+    mdlParams['model_type'] = 'efficientnet-b4'
     mdlParams['dataset_names'] = ['official']  # ,'sevenpoint_rez3_ll']
-    mdlParams['file_ending'] = '.jpg'
+    mdlParams['file_ending'] = '.jpeg'
     mdlParams['exclude_inds'] = False
     mdlParams['same_sized_crops'] = True
     mdlParams['multiCropEval'] = 9
@@ -31,17 +31,17 @@ def init(mdlParams_):
     mdlParams['classification'] = True
     mdlParams['balance_classes'] = 9
     mdlParams['extra_fac'] = 1.0
-    mdlParams['numClasses'] = 8
+    mdlParams['numClasses'] = 7
     mdlParams['no_c9_eval'] = True
     mdlParams['numOut'] = mdlParams['numClasses']
     mdlParams['numCV'] = 1
     mdlParams['trans_norm_first'] = True
     # Scale up for b1-b7
-    mdlParams['input_size'] = [240, 240, 3]
+    mdlParams['input_size'] = [380, 380, 3]
 
     ### Training Parameters ###
     # Batch size
-    mdlParams['batchSize'] = 20  # *len(mdlParams['numGPUs'])
+    mdlParams['batchSize'] = 10  # *len(mdlParams['numGPUs'])
     # Initial learning rate
     mdlParams['learning_rate'] = 0.000015  # *len(mdlParams['numGPUs'])
     # Lower learning rate after no improvement over 100 epochs
@@ -51,7 +51,7 @@ def init(mdlParams_):
     # Divide learning rate by this value
     mdlParams['LRstep'] = 5
     # Maximum number of training iterations
-    mdlParams['training_steps'] = 150  # 250
+    mdlParams['training_steps'] = 100  # 250
     # Display error every X steps
     mdlParams['display_step'] = 10
     # Scale?
@@ -67,7 +67,7 @@ def init(mdlParams_):
 
     # Data AUG
     # mdlParams['full_color_distort'] = True
-    mdlParams['autoaugment'] = False
+    mdlParams['autoaugment'] = True
     mdlParams['flip_lr_ud'] = False
     mdlParams['full_rot'] = 0
     mdlParams['scale'] = (0.8, 1.2)
@@ -79,7 +79,7 @@ def init(mdlParams_):
     # Labels first
     # Targets, as dictionary, indexed by im file name
     mdlParams['labels_dict'] = {}
-    path1 = mdlParams['dataDir'] + '/labels/'
+    path1 = mdlParams['dataDir'] + '/AISC_ISIC_labels/'
     # path1 = mdlParams['dataDir'] + '\labels\\'
     # All sets
     allSets = glob(path1 + '*/')
@@ -137,7 +137,7 @@ def init(mdlParams_):
     mdlParams['im_paths'] = []
     mdlParams['labels_list'] = []
     # Define the sets
-    path1 = mdlParams['dataDir'] + '/images/'
+    path1 = mdlParams['dataDir'] + '/AISC_ISIC_images/'
     # path1 = mdlParams['dataDir'] + '\images\\'
     # All sets
     allSets = sorted(glob(path1 + '*/'))
@@ -176,7 +176,7 @@ def init(mdlParams_):
                 # Add according label, find it first
                 found_already = False
                 for key in mdlParams['labels_dict']:
-                    if key + mdlParams['file_ending'] in files[j]:
+                    if key + '.jpeg' in files[j] or key + '.jpg' in files[j]:
                         if found_already:
                             print("Found already:", key, files[j])
                         mdlParams['key_list'].append(key)
@@ -233,7 +233,7 @@ def init(mdlParams_):
                 print(i + 1, "images processed for mean...")
 
     ### Define Indices ###
-    with open(mdlParams['saveDir'] + 'indices_isic2019_eff1.pkl', 'rb') as f:
+    with open(mdlParams['saveDir'] + 'indices_aisc_plus_isic.pkl', 'rb') as f:
         indices = pickle.load(f)
     mdlParams['trainIndCV'] = indices['trainIndCV']
     mdlParams['valIndCV'] = indices['valIndCV']
