@@ -13,6 +13,18 @@ from scipy import io
 os.chdir(r'C:\Users\ptrkm\Bachelor')
 
 pcl = pickle.load(open(r'indices_aisc_plus_isic.pkl', "rb"))
+labels = pd.read_csv(r'labels_aisc_isic.csv')
+val_ims = pd.read_csv(r'images_for_val2.txt', header = None).values
+
+pcl['valIndCV'] = np.array([j for j,i in enumerate(labels['image']) if i in val_ims])
+
+print(len(set(pcl['valIndCV'])-set(pcl['trainIndCV'])) == len(pcl['valIndCV']))
+with open('indices_aisc_plus_isic.pkl','wb') as handle:
+    pickle.dump(pcl,handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+breakpoint()
+
+
 
 labels = pd.read_csv(r'labels_aisc_isic.csv')
 labels_our = pd.read_csv(r'labels.csv')

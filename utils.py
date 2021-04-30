@@ -23,7 +23,7 @@ import random
 import cv2
 from numba import jit
 import pickle
-
+import time
 
 def illum_est_mink(input_data, mink_norm=6):  # almost same white estimation as DaisyLab
     assert mink_norm >= 1
@@ -515,8 +515,10 @@ class ISICDataset(Dataset):
         else:
             # Apply
             if self.color_augment:
-                x = x/255
-                x = self.wb.random_wb(x)
+                x = np.asarray(x).astype(np.float32)/255
+                x = self.wb.random_wb(x)*255
+                x = Image.fromarray(x.astype('uint8'),'RGB')
+
             x = self.composed(x)
             # meta augment
             if self.mdlParams.get('meta_features',None) is not None:
@@ -771,6 +773,7 @@ def getErrClassification_mgpu(mdlParams, indices, modelVars, exclude_class=None)
         targets_mc = np.zeros([len(mdlParams[indices]),mdlParams['numClasses'],mdlParams['multiCropEval']])
         for i, (inputs, labels, inds) in enumerate(modelVars['dataloader_'+indices]):
             # Get data
+            print()
             if mdlParams.get('meta_features',None) is not None:
                 inputs[0] = inputs[0].cuda()
                 inputs[1] = inputs[1].cuda()
@@ -788,6 +791,7 @@ def getErrClassification_mgpu(mdlParams, indices, modelVars, exclude_class=None)
                 else:
                     outputs = modelVars['model'](inputs)
                 preds = modelVars['softmax'](outputs)
+
                 # Loss
                 loss = modelVars['criterion'](outputs, labels)
             # Write into proper arrays
@@ -869,6 +873,8 @@ def getErrClassification_mgpu(mdlParams, indices, modelVars, exclude_class=None)
         else:
             for i, (inputs, labels, indices) in enumerate(modelVars['dataloader_'+indices]):
                 # Get data
+                print("printing length of input to network from dataloader", len(inputs))
+                time.sleep(20)
                 if mdlParams.get('meta_features',None) is not None:
                     inputs[0] = inputs[0].cuda()
                     inputs[1] = inputs[1].cuda()
@@ -893,6 +899,8 @@ def getErrClassification_mgpu(mdlParams, indices, modelVars, exclude_class=None)
                 if i==0:
                     loss_all = np.array([loss.cpu().numpy()])
                     predictions = preds.cpu().numpy()
+                    print("sum of predictions, check if zero", np.sum(predictions))
+                    time.sleep(20)
                     tar_not_one_hot = labels.data.cpu().numpy()
                     tar = np.zeros((tar_not_one_hot.shape[0], mdlParams['numClasses']))
                     tar[np.arange(tar_not_one_hot.shape[0]),tar_not_one_hot] = 1

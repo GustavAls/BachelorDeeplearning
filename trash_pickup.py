@@ -41,8 +41,8 @@ import shutil
 full_data = os.listdir(paths[0])
 cropped_data = os.listdir(return_folder)
 
-path1 = r'C:\Users\ptrkm\Bachelor\Test Data ISIC\Uncropped\ISIC_2019_Test_Input'
-path2 = r'C:\Users\ptrkm\Bachelor\Test Data ISIC\Cropped_p2'
+path1 = r'C:\Users\ptrkm\Bachelor\2018_test\ISIC2018_Task3_Test_Input'
+path2 = r'C:\Users\ptrkm\Bachelor\2018_test\cropped'
 original_folders = os.listdir(path1)
 return_folders = os.listdir(path2)
 
@@ -52,7 +52,7 @@ idx = 0
 # num_png = np.sum(['png' in i for i in list(cropped_data)])
 
 unused_data = list(set(original_folders) - set(return_folders))
-
+breakpoint()
 for i in unused_data:
     if 'txt' not in i:
         try:
@@ -84,7 +84,7 @@ for i in unused_data:
     idx += 1
 
     print(idx)
-breakpoint()
+
 
 os.chdir(path2)
 for i, images in enumerate(os.listdir(path2)):

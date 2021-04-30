@@ -55,9 +55,13 @@ class data_visualiser:
         self.aisc_indices = pickle.load(open(os.path.join(self.ground_path,'indices_AISC.pkl'),'rb'))
         self.aisc_isic_indices = pickle.load(open(os.path.join(self.ground_path,'indices_aisc_plus_isic.pkl'),'rb'))
 
+        self.ensemble_pkls = pickle.load(open(os.path.join(self.ground_path, 'ensemble_results.pkl'),'rb'))
+
         self.indices_dict = {'aisc': self.aisc_indices,
                              'isic': self.isic_indices,
                              'combined': self.aisc_isic_indices}
+
+
         self.pkl_list = []
         self.weighted_accuracy = None
         self.accuracy = None
@@ -102,11 +106,13 @@ class data_visualiser:
                         for fls in os.listdir(chosen_path):
                             if '.pkl' in fls:
                                 pcl = pickle.load(open(os.path.join(chosen_path, fls),'rb'))
+                                print(os.path.join(chosen_path,fls))
                                 if len(pcl['bestPred']) > 6:
                                     self.pkl_list.append(pcl)
                                 else:
                                     new_dict = {'bestPred':pcl['bestPred'][0], 'targets':pcl['targets'][0]}
                                     self.pkl_list.append(new_dict)
+                                print(rrs, self.pkl_list[-1]['bestPred'].shape)
             for ssr in self.ss_list:
                 for files in os.listdir(self.path_to_train_ss):
                     if ssr in files:
@@ -119,10 +125,25 @@ class data_visualiser:
                                 else:
                                     new_dict = {'bestPred':pcl['bestPred'][0], 'targets':pcl['targets'][0]}
                                     self.pkl_list.append(new_dict)
+                                print(ssr, self.pkl_list[-1]['bestPred'].shape)
 
+    def create_prediction_pkl(self, location,multiple = False, evaluation_set = 'ISIC'):
 
+        if not multiple:
+            if 'C:' not in location:
+                pcl = pickle.load(open(os.path.join(self.ground_path,location),'rb'))
+                predictions = pcl['extPred'][0]
+                if evaluation_set == 'ISIC':
+                    targets = self.isic_labels.drop(['image'],axis = 1).values
+                elif evaluation_set == 'AISC':
+                    targets = self.aisc_labels.drop(['image'],axis =1).values
 
-    def create_pkl(self, network_names = None, create_ensemble = True, evaluation_set=None):
+                name = location
+                self.pkl = {'predictions': predictions,
+                            'targets': targets,
+                            'names': name}
+
+    def create_pkl(self, network_names = None, create_ensemble = True, evaluation_set=None, already_created = None):
         """
         :param pkl_list:
         :param create_ensemble:
@@ -131,43 +152,48 @@ class data_visualiser:
         """
         #Creates a combined pickle file for further metrics.
         #pkl_list is either list of pickle files or one
-
-        if type(self.pkl_list) is list:
-            if create_ensemble:
-                for idx, pkl in enumerate(self.pkl_list):
-                    if 'targets' in pkl.keys() and idx == 0:
-                        targets = pkl['targets']
-                        predictions = np.zeros(targets.shape)
-                        predictions += pkl['bestPred']/len(self.pkl_list)
-                    elif 'targets' in pkl.keys():
-                        predictions+= pkl['bestPred']/len(self.pkl_list)
-                    elif 'targets' not in pkl.keys() and 'targets' in locals():
-                        print(" number {} in the list should not be included".format(idx))
-                    elif 'targets' not in pkl.keys() and idx == 0:
-                        predictions = pkl['extPred']
-                    elif 'targets' not in pkl.keys():
-                        predictions += pkl['extPred']
+        if already_created is None:
+            if type(self.pkl_list) is list:
+                if create_ensemble:
+                    for idx, pkl in enumerate(self.pkl_list):
+                        if 'targets' in pkl.keys() and idx == 0:
+                            targets = pkl['targets']
+                            predictions = np.zeros(targets.shape)
+                            predictions += pkl['bestPred']/len(self.pkl_list)
+                        elif 'targets' in pkl.keys():
+                            predictions+= pkl['bestPred']/len(self.pkl_list)
+                        elif 'targets' not in pkl.keys() and 'targets' in locals():
+                            print(" number {} in the list should not be included".format(idx))
+                        elif 'targets' not in pkl.keys() and idx == 0:
+                            predictions = pkl['extPred']
+                        elif 'targets' not in pkl.keys():
+                            predictions += pkl['extPred']
+                else:
+                    targets = []
+                    predictions = []
+                    for idx, pkl in enumerate(self.pkl_list):
+                        if 'targets' in pkl.keys():
+                            targets.append(pkl['targets'])
+                            predictions.append(pkl['bestPred'])
+                        elif 'targets' not in pkl.keys():
+                            predictions.append(pkl['extPred'])
             else:
-                targets = []
-                predictions = []
-                for idx, pkl in enumerate(self.pkl_list):
-                    if 'targets' in pkl.keys():
-                        targets.append(pkl['targets'])
-                        predictions.append(pkl['bestPred'])
-                    elif 'targets' not in pkl.keys():
-                        predictions.append(pkl['extPred'])
-        else:
-            if 'targets' in self.pkl_list.keys():
-                predictions = self.pkl_list['bestPred']
-                targets = self.pkl_list['targets']
+                if 'targets' in self.pkl_list.keys():
+                    predictions = self.pkl_list['bestPred']
+                    targets = self.pkl_list['targets']
 
-        if 'targets' not in locals():
-            if evaluation_set == 'aisc':
-                targets = self.aisc_labels[self.indices_dict['aisc']['valIndCV']]
-            elif evaluation_set == 'isic':
-                targets = self.isic_labels[self.indices_dict['isic']['valIndCV']]
-            elif evaluation_set == 'combined':
-                targets = self.aisc_isic_labels[self.indices_dict['combined']['valIndCV']]
+            if 'targets' not in locals():
+                if evaluation_set == 'aisc':
+                    targets = self.aisc_labels[self.indices_dict['aisc']['valIndCV']]
+                elif evaluation_set == 'isic':
+                    targets = self.isic_labels[self.indices_dict['isic']['valIndCV']]
+                elif evaluation_set == 'combined':
+                    targets = self.aisc_isic_labels[self.indices_dict['combined']['valIndCV']]
+        else:
+            predictions = self.ensemble_pkls[already_created+'_predictions'].drop(['image'],axis =1).values
+            targets = self.ensemble_pkls[list(self.ensemble_pkls.keys())[0]].drop(['image'], axis =1).values
+            network_names = already_created
+
 
 
         self.pkl = {'predictions': predictions,
@@ -189,13 +215,18 @@ class data_visualiser:
 
             self.confusion_matrix = metrics.confusion_matrix(np.argmax(self.pkl['targets'],1),
                                                                    np.argmax(self.pkl['predictions'],1))
+            self.per_class = self.confusion_matrix.diagonal()/np.sum(self.confusion_matrix,axis = 1)
             self.results = {'ensemble_results': {
                 'weighted_accuracy': self.weighted_accuracy,
                 'accuracy': self.accuracy,
-                'confusion_matrix': self.confusion_matrix
+                'confusion_matrix': self.confusion_matrix,
+                'per_class': self.per_class
             }}
-            self.make_confusion_matrix(cf = self.confusion_matrix,categories=self.labels,cbar = False, figsize=(10,8))
-
+            if confusion_plot_name is None:
+                self.make_confusion_matrix(cf = self.confusion_matrix,categories=self.labels,cbar = False, figsize=(10,8))
+            else:
+                self.make_confusion_matrix(cf=self.confusion_matrix, categories=self.labels, cbar=False,show=False,
+                                           figsize=(10, 8))
 
         else:
             self.weighted_accuracy = [metrics.balanced_accuracy_score(np.argmax(preds,1), np.argmax(tags,1))
@@ -308,12 +339,16 @@ class data_visualiser:
             weighted = cf.diagonal()/np.sum(cf,axis =1)
             group_percentages = []
             count = 0
-            for i in cf.flatten():
-                if i not in cf.diagonal():
-                    group_percentages.append('')
-                else:
-                    group_percentages.append("{0:.2%}".format(weighted[count]))
-                    count += 1
+            for i in range(cf.shape[0]):
+                for j in range(cf.shape[1]):
+                    if i != j:
+                        group_percentages.append('')
+                    else:
+                        try:
+                            group_percentages.append("{0:.2%}".format(weighted[count]))
+                            count += 1
+                        except:
+                            breakpoint()
 
             # group_percentages = ["{0:.2%}".format(weighted[idx // cf.shape[0]]) if idx%cf.shape[1]==0 else '' for idx, value in enumerate(cf.flatten())]
         else:
@@ -353,33 +388,38 @@ class data_visualiser:
         plt.figure(figsize=figsize)
         for i in range(cf.shape[0]):
             cf[i,:] = cf[i,:]/np.sum(cf[i,:])*20
-
+        sns.set(font_scale = 1.2)
         sns.heatmap(cf, annot=box_labels, fmt="", cmap=cmap, cbar=cbar, xticklabels=categories, yticklabels=categories)
 
         if xyplotlabels:
-            plt.ylabel('True label')
-            plt.xlabel('Predicted label' + stats_text)
+            plt.ylabel('True label',size = 20)
+            plt.xlabel('Predicted label', size = 20)
         else:
             plt.xlabel(stats_text)
 
         if title:
             plt.title(title)
         if show:
+            # plt.rc('axes', label_size='10')
             plt.show()
         else:
-            plt.savefig(self.confusion_matrix_name+'.eps',format = 'eps')
+            # plt.rc('axes', label_size = '10')
+            plt.savefig(os.path.join(self.ground_path,self.confusion_matrix_name+'.eps'),format = 'eps',pad_inches = 0)
 
 
 def main():
     our_ensemble = ['res_101_rr', 'efficientnet_b5_rr', 'se_resnet101_rr', 'nasnetamobile_rr',
                     'efficientnet_b6_ss', 'resnext_101_32_8_wsl_rr', 'dense_169_rr']
 
-    their_ensemble = ['efficientnet_b0_rr', 'efficientnet_b1_rr', 'efficientnet_b2_rr', 'efficientnet_b3_rr',
+    their_ensemble = ['efficientnet_b1_rr', 'efficientnet_b2_rr', 'efficientnet_b3_rr',
                       'efficientnet_b4_rr', 'efficientnet_b5_rr', 'efficientnet_b0_ss', 'efficientnet_b1_ss',
                       'efficientnet_b2_ss', 'efficientnet_b3_ss', 'efficientnet_b4_ss', 'efficientnet_b5_ss',
                       'efficientnet_b6_ss', 'senet154_ss']
+
     gustav_bunder = data_visualiser()
-    gustav_bunder.create_pkl_list(our_ensemble)
-    gustav_bunder.create_pkl(network_names=our_ensemble, create_ensemble=False)
-    gustav_bunder.score_metrics()
+    # gustav_bunder.create_pkl_list(network_list=their_ensemble)
+
+    gustav_bunder.create_prediction_pkl(location='2019_rr.resnet101_rr_AISC_gpu0_58_predn.pkl')
+    gustav_bunder.score_metrics(confusion_plot_name='res101_aisc_on_isic')
+    breakpoint()
 main()

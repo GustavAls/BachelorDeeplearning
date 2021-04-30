@@ -7,7 +7,7 @@ Created on Wed Oct 28 13:23:48 2020
 """
 
 diag_dict = {}
-isic_label_names = ['MEL', 'NV', 'BCC', 'AK', 'BKL', 'DF', 'VASC', 'SCC']
+isic_label_names =['MEL', 'NV', 'BCC', 'AK', 'BKL', 'DF', 'VASC', 'SCC']
 isic_idxs = dict(zip(isic_label_names, range(len(isic_label_names))))
 
 diags = {}

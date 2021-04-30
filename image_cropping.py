@@ -19,7 +19,7 @@ width = 600
 height = 450
 preserve_size = 600
 paths = [r'C:\Users\ptrkm\OneDrive\Dokumenter\Bachelor deep learning\Data ISIC\ISIC_2019_Training_Input\\']
-return_folder = r'C:\Users\ptrkm\Bachelor\Test Data ISIC\Cropped\\'
+return_folder = r'C:\Users\ptrkm\Bachelor\2018_test\cropped'
 # paths = [r'C:\Users\Bruger\OneDrive\DTU - General engineering\6. Semester\Bachelor\ISBI2016_ISIC_Part2B_Training_Data\TestRunImages\\']
 # return_folder = r'C:\Users\Bruger\OneDrive\DTU - General engineering\6. Semester\Bachelor\ISBI2016_ISIC_Part2B_Training_Data\TestRunImagesOutput\\'
 standard_size = np.asarray([height, width])
@@ -42,7 +42,7 @@ use_cropping = False
 errors = []
 area_threshold = 0.80
 n_croppings = 0
-path_test_isic = r'C:\Users\ptrkm\Bachelor\Test Data ISIC\Uncropped\ISIC_2019_Test_Input'
+path_test_isic = r'C:\Users\ptrkm\Bachelor\2018_test\ISIC2018_Task3_Test_Input'
 os.chdir(r'C:\Users\ptrkm\Bachelor\Test Data ISIC\Uncropped\ISIC_2019_Test_Input')
 for i, j in enumerate(os.listdir(path_test_isic)):
     # if i > 0:
