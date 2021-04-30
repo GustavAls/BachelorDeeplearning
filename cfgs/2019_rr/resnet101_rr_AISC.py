@@ -1,4 +1,4 @@
-import os
+﻿import os
 import sys
 import h5py
 import re
@@ -11,16 +11,17 @@ import imagesize
 
 def init(mdlParams_):
     mdlParams = {}
+    # Save summaries and model here
     local_path = '/isic2019/'
     # local_path = '\isic2019\\'
-    mdlParams['saveDir'] = mdlParams_['pathBase']+'/'
+    mdlParams['saveDir'] = mdlParams_['pathBase'] + '/'
     # Data is loaded from here
-    mdlParams['dataDir'] = mdlParams_['pathBase']+local_path
+    mdlParams['dataDir'] = mdlParams_['pathBase'] + local_path
 
     ### Model Selection ###
-    mdlParams['model_type'] = 'se_resnet101'
-    mdlParams['dataset_names'] = ['official']#,'sevenpoint_rez3_ll']
-    mdlParams['file_ending'] = '.jpg'
+    mdlParams['model_type'] = 'Resnet101'
+    mdlParams['dataset_names'] = ['official']
+    mdlParams['file_ending'] = '.jpeg'
     mdlParams['exclude_inds'] = False
     mdlParams['same_sized_crops'] = False
     mdlParams['multiCropEval'] = 9
@@ -59,9 +60,9 @@ def init(mdlParams_):
     # Divide learning rate by this value
     mdlParams['LRstep'] = 5
     # Maximum number of training iterations
-    mdlParams['training_steps'] = 150 #250
+    mdlParams['training_steps'] = 100 #250
     # Display error every X steps
-    mdlParams['display_step'] = 10
+    mdlParams['display_step'] = 2
     # Scale?
     mdlParams['scale_targets'] = False
     # Peak at test error during training? (generally, dont do this!)
@@ -76,18 +77,18 @@ def init(mdlParams_):
     # Data AUG
     #mdlParams['full_color_distort'] = True
     mdlParams['autoaugment'] = True
-    mdlParams['flip_lr_ud'] = False
-    mdlParams['full_rot'] = 0
+    mdlParams['flip_lr_ud'] = True
+    mdlParams['full_rot'] = 180
     mdlParams['scale'] = (0.8,1.2)
     mdlParams['shear'] = 10
-    mdlParams['cutout'] = 0
+    mdlParams['cutout'] = 16
 
     ### Data ###
     mdlParams['preload'] = False
     # Labels first
     # Targets, as dictionary, indexed by im file name
     mdlParams['labels_dict'] = {}
-    path1 = mdlParams['dataDir'] + '/labels/'
+    path1 = mdlParams['dataDir'] + '/AISC_labels/'
      # All sets
     allSets = glob(path1 + '*/')
     # Go through all sets
@@ -137,7 +138,7 @@ def init(mdlParams_):
     mdlParams['im_paths'] = []
     mdlParams['labels_list'] = []
     # Define the sets
-    path1 = mdlParams['dataDir'] + '/images/'
+    path1 = mdlParams['dataDir'] + '/AISC_images/'
     # All sets
     allSets = sorted(glob(path1 + '*/'))
     # Ids which name the folders
@@ -187,48 +188,10 @@ def init(mdlParams_):
     # Convert label list to array
     mdlParams['labels_array'] = np.array(mdlParams['labels_list'])
     print(np.mean(mdlParams['labels_array'],axis=0))
-    # Create indices list with HAM10000 only
-    mdlParams['HAM10000_inds'] = []
-    HAM_START = 24306
-    HAM_END = 34320
-    for j in range(len(mdlParams['key_list'])):
-        try:
-            curr_id = [int(s) for s in re.findall(r'\d+',mdlParams['key_list'][j])][-1]
-        except:
-            continue
-        if curr_id >= HAM_START and curr_id <= HAM_END:
-            mdlParams['HAM10000_inds'].append(j)
-    mdlParams['HAM10000_inds'] = np.array(mdlParams['HAM10000_inds'])
-    print("Len ham",len(mdlParams['HAM10000_inds']))
-    # Perhaps preload images
-    if mdlParams['preload']:
-        mdlParams['images_array'] = np.zeros([len(mdlParams['im_paths']),mdlParams['input_size_load'][0],mdlParams['input_size_load'][1],mdlParams['input_size_load'][2]],dtype=np.uint8)
-        for i in range(len(mdlParams['im_paths'])):
-            x = scipy.ndimage.imread(mdlParams['im_paths'][i])
-            #x = x.astype(np.float32)
-            # Scale to 0-1
-            #min_x = np.min(x)
-            #max_x = np.max(x)
-            #x = (x-min_x)/(max_x-min_x)
-            mdlParams['images_array'][i,:,:,:] = x
-            if i%1000 == 0:
-                print(i+1,"images loaded...")
-    if mdlParams['subtract_set_mean']:
-        mdlParams['images_means'] = np.zeros([len(mdlParams['im_paths']),3])
-        for i in range(len(mdlParams['im_paths'])):
-            x = scipy.ndimage.imread(mdlParams['im_paths'][i])
-            x = x.astype(np.float32)
-            # Scale to 0-1
-            min_x = np.min(x)
-            max_x = np.max(x)
-            x = (x-min_x)/(max_x-min_x)
-            mdlParams['images_means'][i,:] = np.mean(x,(0,1))
-            if i%1000 == 0:
-                print(i+1,"images processed for mean...")
 
     ### Define Indices ###
     # Just divide into 5 equally large sets
-    with open(mdlParams['saveDir'] + 'indices_isic2019.pkl','rb') as f:
+    with open(mdlParams['saveDir'] + 'indices_AISC.pkl','rb') as f:
         indices = pickle.load(f)
     mdlParams['trainIndCV'] = indices['trainIndCV']
     mdlParams['valIndCV'] = indices['valIndCV']
@@ -237,20 +200,20 @@ def init(mdlParams_):
         all_inds = np.arange(len(mdlParams['im_paths']))
         exclude_inds = all_inds[exclude_list.astype(bool)]
         for i in range(len(mdlParams['trainIndCV'])):
-            mdlParams['trainIndCV'] = np.setdiff1d(mdlParams['trainIndCV'],exclude_inds)
+            mdlParams['trainIndCV'][i] = np.setdiff1d(mdlParams['trainIndCV'][i],exclude_inds)
         for i in range(len(mdlParams['valIndCV'])):
-            mdlParams['valIndCV'] = np.setdiff1d(mdlParams['valIndCV'],exclude_inds)
+            mdlParams['valIndCV'][i] = np.setdiff1d(mdlParams['valIndCV'][i],exclude_inds)
     # Consider case with more than one set
     if len(mdlParams['dataset_names']) > 1:
         restInds = np.array(np.arange(25331,mdlParams['labels_array'].shape[0]))
         for i in range(mdlParams['numCV']):
-            mdlParams['trainIndCV'] = np.concatenate((mdlParams['trainIndCV'],restInds))
+            mdlParams['trainIndCV'][i] = np.concatenate((mdlParams['trainIndCV'][i],restInds))
     print("Train")
-    # for i in range(len(mdlParams['trainIndCV'])):
-    #     print(mdlParams['trainIndCV'][i].shape)
-    # print("Val")
-    # for i in range(len(mdlParams['valIndCV'])):
-    #     print(mdlParams['valIndCV'][i].shape)
+    for i in range(len(mdlParams['trainIndCV'])):
+        print(mdlParams['trainIndCV'][i].shape)
+    print("Val")
+    for i in range(len(mdlParams['valIndCV'])):
+        print(mdlParams['valIndCV'][i].shape)
 
     # Use this for ordered multi crops
     if mdlParams['orderedCrop']:
@@ -274,7 +237,6 @@ def init(mdlParams_):
 
                     ind += 1
         # Sanity checks
-        #print("Positions",mdlParams['cropPositions'])
         # Test image sizes
         height = mdlParams['input_size'][0]
         width = mdlParams['input_size'][1]

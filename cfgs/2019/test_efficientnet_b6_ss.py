@@ -41,7 +41,7 @@ def init(mdlParams_):
 
     ### Training Parameters ###
     # Batch size
-    mdlParams['batchSize'] = 6  # *len(mdlParams['numGPUs'])
+    mdlParams['batchSize'] = 5  # *len(mdlParams['numGPUs'])
     # Initial learning rate
     mdlParams['learning_rate'] = 0.000015  # *len(mdlParams['numGPUs'])
     # Lower learning rate after no improvement over 100 epochs

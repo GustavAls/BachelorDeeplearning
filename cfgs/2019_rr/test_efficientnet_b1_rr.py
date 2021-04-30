@@ -59,15 +59,15 @@ def init(mdlParams_):
     # Divide learning rate by this value
     mdlParams['LRstep'] = 5
     # Maximum number of training iterations
-    mdlParams['training_steps'] = 150 #250
+    mdlParams['training_steps'] = 100 #250
     # Display error every X steps
-    mdlParams['display_step'] = 10
+    mdlParams['display_step'] = 2
     # Scale?
     mdlParams['scale_targets'] = False
     # Peak at test error during training? (generally, dont do this!)
     mdlParams['peak_at_testerr'] = False
     # Print trainerr
-    mdlParams['print_trainerr'] = False
+    mdlParams['print_trainerr'] = True
     # Subtract trainset mean?
     mdlParams['subtract_set_mean'] = False
     mdlParams['setMean'] = np.array([0.0, 0.0, 0.0])

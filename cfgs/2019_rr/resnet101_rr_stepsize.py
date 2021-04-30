@@ -18,7 +18,7 @@ def init(mdlParams_):
     mdlParams['dataDir'] = mdlParams_['pathBase']+local_path
 
     ### Model Selection ###
-    mdlParams['model_type'] = 'se_resnet101'
+    mdlParams['model_type'] = 'Resnet101'
     mdlParams['dataset_names'] = ['official']#,'sevenpoint_rez3_ll']
     mdlParams['file_ending'] = '.jpg'
     mdlParams['exclude_inds'] = False
@@ -30,10 +30,10 @@ def init(mdlParams_):
     mdlParams['classification'] = True
     mdlParams['balance_classes'] = 9
     mdlParams['extra_fac'] = 1.0
-    mdlParams['numClasses'] = 8
+    mdlParams['numClasses'] = 9
     mdlParams['no_c9_eval'] = True
     mdlParams['numOut'] = mdlParams['numClasses']
-    mdlParams['numCV'] = 5
+    mdlParams['numCV'] = 1
     mdlParams['trans_norm_first'] = True
     # Deterministic cropping
     mdlParams['deterministic_eval'] = True
@@ -49,19 +49,19 @@ def init(mdlParams_):
 
     ### Training Parameters ###
     # Batch size
-    mdlParams['batchSize'] = 20#*len(mdlParams['numGPUs'])
+    mdlParams['batchSize'] = 30#*len(mdlParams['numGPUs'])
     # Initial learning rate
     mdlParams['learning_rate'] = 0.000015#*len(mdlParams['numGPUs'])
     # Lower learning rate after no improvement over 100 epochs
-    mdlParams['lowerLRAfter'] = 25
+    mdlParams['lowerLRAfter'] = 10
     # If there is no validation set, start lowering the LR after X steps
-    mdlParams['lowerLRat'] = 50
+    mdlParams['lowerLRat'] = 25
     # Divide learning rate by this value
     mdlParams['LRstep'] = 5
     # Maximum number of training iterations
-    mdlParams['training_steps'] = 150 #250
+    mdlParams['training_steps'] = 100 #250
     # Display error every X steps
-    mdlParams['display_step'] = 10
+    mdlParams['display_step'] = 2
     # Scale?
     mdlParams['scale_targets'] = False
     # Peak at test error during training? (generally, dont do this!)
@@ -228,7 +228,7 @@ def init(mdlParams_):
 
     ### Define Indices ###
     # Just divide into 5 equally large sets
-    with open(mdlParams['saveDir'] + 'indices_isic2019.pkl','rb') as f:
+    with open(mdlParams['saveDir'] + 'indices_isic2019_one_cv.pkl','rb') as f:
         indices = pickle.load(f)
     mdlParams['trainIndCV'] = indices['trainIndCV']
     mdlParams['valIndCV'] = indices['valIndCV']

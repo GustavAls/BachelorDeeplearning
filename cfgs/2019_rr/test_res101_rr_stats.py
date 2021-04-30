@@ -18,7 +18,7 @@ def init(mdlParams_):
     mdlParams['dataDir'] = mdlParams_['pathBase']+local_path
 
     ### Model Selection ###
-    mdlParams['model_type'] = 'se_resnet101'
+    mdlParams['model_type'] = 'Resnet101'
     mdlParams['dataset_names'] = ['official']#,'sevenpoint_rez3_ll']
     mdlParams['file_ending'] = '.jpg'
     mdlParams['exclude_inds'] = False
@@ -33,7 +33,7 @@ def init(mdlParams_):
     mdlParams['numClasses'] = 8
     mdlParams['no_c9_eval'] = True
     mdlParams['numOut'] = mdlParams['numClasses']
-    mdlParams['numCV'] = 5
+    mdlParams['numCV'] = 1
     mdlParams['trans_norm_first'] = True
     # Deterministic cropping
     mdlParams['deterministic_eval'] = True
@@ -59,15 +59,15 @@ def init(mdlParams_):
     # Divide learning rate by this value
     mdlParams['LRstep'] = 5
     # Maximum number of training iterations
-    mdlParams['training_steps'] = 150 #250
+    mdlParams['training_steps'] = 100 #250
     # Display error every X steps
-    mdlParams['display_step'] = 10
+    mdlParams['display_step'] = 2
     # Scale?
     mdlParams['scale_targets'] = False
     # Peak at test error during training? (generally, dont do this!)
     mdlParams['peak_at_testerr'] = False
     # Print trainerr
-    mdlParams['print_trainerr'] = False
+    mdlParams['print_trainerr'] = True
     # Subtract trainset mean?
     mdlParams['subtract_set_mean'] = False
     mdlParams['setMean'] = np.array([0.0, 0.0, 0.0])
@@ -228,7 +228,7 @@ def init(mdlParams_):
 
     ### Define Indices ###
     # Just divide into 5 equally large sets
-    with open(mdlParams['saveDir'] + 'indices_isic2019.pkl','rb') as f:
+    with open(mdlParams['saveDir'] + 'indices_isic2019_one_cv.pkl','rb') as f:
         indices = pickle.load(f)
     mdlParams['trainIndCV'] = indices['trainIndCV']
     mdlParams['valIndCV'] = indices['valIndCV']
