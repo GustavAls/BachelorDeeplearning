@@ -33,7 +33,7 @@ def init(mdlParams_):
     mdlParams['numClasses'] = 8
     mdlParams['no_c9_eval'] = True
     mdlParams['numOut'] = mdlParams['numClasses']
-    mdlParams['numCV'] = 1
+    mdlParams['numCV'] = 5
     mdlParams['trans_norm_first'] = True
     # Deterministic cropping
     mdlParams['deterministic_eval'] = True
@@ -59,7 +59,7 @@ def init(mdlParams_):
     # Divide learning rate by this value
     mdlParams['LRstep'] = 5
     # Maximum number of training iterations
-    mdlParams['training_steps'] = 100 #250
+    mdlParams['training_steps'] = 150 #250
     # Display error every X steps
     mdlParams['display_step'] = 10
     # Scale?

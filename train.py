@@ -12,6 +12,7 @@ from scipy import io
 import threading
 import pickle
 from pathlib import Path
+import scipy
 import math
 import os
 import sys
@@ -128,9 +129,9 @@ def main():
         modelVars['device'] = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print(modelVars['device'])
         # Def current CV set
-        mdlParams['trainInd'] = mdlParams['trainIndCV']
+        mdlParams['trainInd'] = mdlParams['trainIndCV'][cv]
         if 'valIndCV' in mdlParams:
-            mdlParams['valInd'] = mdlParams['valIndCV']
+            mdlParams['valInd'] = mdlParams['valIndCV'][cv]
         # Def current path for saving stuff
         if 'valIndCV' in mdlParams:
             mdlParams['saveDir'] = mdlParams['saveDirBase'] + '/CVSet' + str(cv)
@@ -138,12 +139,14 @@ def main():
         else:
             mdlParams['saveDir'] = mdlParams['saveDirBase']
         # Create basepath if it doesnt exist yet
+        print(mdlParams['saveDir'])
         if not os.path.isdir(mdlParams['saveDirBase']):
             os.mkdir(mdlParams['saveDirBase'])
         # Check if there is something to load
         load_old = 0
         if os.path.isdir(mdlParams['saveDir']):
             # Check if a checkpoint is in there
+            print("i got here" + str(147))
             if len([name for name in os.listdir(mdlParams['saveDir'])]) > 0:
                 load_old = 1
                 print("Loading old model")
@@ -178,45 +181,19 @@ def main():
             mdlParams['setMean'] = np.mean(mdlParams['images_means'][mdlParams['trainInd'], :], (0))
             print("Set Mean", mdlParams['setMean'])
 
-            # balance classes
-        if mdlParams['balance_classes'] < 3 or mdlParams['balance_classes'] == 7 or mdlParams['balance_classes'] == 11:
-            class_weights = class_weight.compute_class_weight('balanced', np.unique(
-                np.argmax(mdlParams['labels_array'][mdlParams['trainInd'], :], 1)),
-                                                              np.argmax(mdlParams['labels_array'][mdlParams['trainInd'], :],
-                                                                        1))
-            print("Current class weights", class_weights)
-            class_weights = class_weights * mdlParams['extra_fac']
-            print("Current class weights with extra", class_weights)
-        elif mdlParams['balance_classes'] == 3 or mdlParams['balance_classes'] == 4:
-            # Split training set by classes
-            not_one_hot = np.argmax(mdlParams['labels_array'], 1)
-            mdlParams['class_indices'] = []
-            for i in range(mdlParams['numClasses']):
-                mdlParams['class_indices'].append(np.where(not_one_hot == i)[0])
-                # Kick out non-trainind indices
-                mdlParams['class_indices'][i] = np.setdiff1d(mdlParams['class_indices'][i], mdlParams['valInd'])
-                # print("Class",i,mdlParams['class_indices'][i].shape,np.min(mdlParams['class_indices'][i]),np.max(mdlParams['class_indices'][i]),np.sum(mdlParams['labels_array'][np.int64(mdlParams['class_indices'][i]),:],0))
-        elif mdlParams['balance_classes'] == 5 or mdlParams['balance_classes'] == 6 or mdlParams['balance_classes'] == 13:
-            # Other class balancing loss
-            class_weights = 1.0 / np.mean(mdlParams['labels_array'][mdlParams['trainInd'], :], axis=0)
-            print("Current class weights", class_weights)
-            if isinstance(mdlParams['extra_fac'], float):
-                class_weights = np.power(class_weights, mdlParams['extra_fac'])
-            else:
-                class_weights = class_weights * mdlParams['extra_fac']
-            print("Current class weights with extra", class_weights)
-        elif mdlParams['balance_classes'] == 9:
+        if mdlParams['balance_classes'] == 9:
             # Only use official indicies for calculation
             print("Balance 9")
-            indices_ham = mdlParams['trainInd'][mdlParams['trainInd'] < 25331]
+            indices = mdlParams['trainInd'][mdlParams['trainInd'] < 40000]
             if mdlParams['numClasses'] == 9:
-                class_weights_ = 1.0 / np.mean(mdlParams['labels_array'][indices_ham, :8], axis=0)
+                class_weights_ = 1.0 / np.mean(mdlParams['labels_array'][indices, :8], axis=0)
                 # print("class before",class_weights_)
                 class_weights = np.zeros([mdlParams['numClasses']])
                 class_weights[:8] = class_weights_
                 class_weights[-1] = np.max(class_weights_)
             else:
-                class_weights = 1.0 / np.mean(mdlParams['labels_array'][indices_ham, :], axis=0)
+                print(mdlParams['labels_array'])
+                class_weights = 1.0 / np.mean(mdlParams['labels_array'][indices, :], axis=0)
             print("Current class weights", class_weights)
             if isinstance(mdlParams['extra_fac'], float):
                 class_weights = np.power(class_weights, mdlParams['extra_fac'])
@@ -243,15 +220,9 @@ def main():
             modelVars['dataloader_valInd'] = DataLoader(dataset_val, batch_size=mdlParams['batchSize'], shuffle=False,
                                                         num_workers=num_workers, pin_memory=True)
 
-        if mdlParams['balance_classes'] == 12 or mdlParams['balance_classes'] == 13:
-            # print(np.argmax(mdlParams['labels_array'][mdlParams['trainInd'],:],1).size(0))
-            strat_sampler = utils.StratifiedSampler(mdlParams)
-            modelVars['dataloader_trainInd'] = DataLoader(dataset_train, batch_size=mdlParams['batchSize'],
-                                                          sampler=strat_sampler, num_workers=num_workers, pin_memory=True)
-        else:
-            modelVars['dataloader_trainInd'] = DataLoader(dataset_train, batch_size=mdlParams['batchSize'], shuffle=True,
+        modelVars['dataloader_trainInd'] = DataLoader(dataset_train, batch_size=mdlParams['batchSize'], shuffle=True,
                                                           num_workers=num_workers, pin_memory=True, drop_last=True)
-            # print("Setdiff",np.setdiff1d(mdlParams['trainInd'],mdlParams['trainInd']))
+        # print("Setdiff",np.setdiff1d(mdlParams['trainInd'],mdlParams['trainInd']))
         # Define model
         modelVars['model'] = models.getModel(mdlParams)()
         # Load trained model
@@ -289,11 +260,7 @@ def main():
                     curr_model_dict[name].copy_(param)
                 else:
                     print("not restored", name, param.shape)
-            # modelVars['model'].load_state_dict(state['state_dict'])
-        # Original input size
-        # if 'Dense' not in mdlParams['model_type']:
-        #    print("Original input size",modelVars['model'].input_size)
-        # print(modelVars['model'])
+
         # Define classifier layer
         if 'Dense' in mdlParams['model_type']:
             if mdlParams['input_size'][0] != 224:
@@ -323,7 +290,7 @@ def main():
         else:
             num_ftrs = modelVars['model'].last_linear.in_features
             modelVars['model'].last_linear = nn.Linear(num_ftrs, mdlParams['numClasses'])
-            # Take care of meta case
+        # Take care of meta case
         if mdlParams.get('meta_features', None) is not None:
             # freeze cnn first
             if mdlParams['freeze_cnn']:
@@ -365,25 +332,11 @@ def main():
             modelVars['model'] = nn.DataParallel(modelVars['model'])
         modelVars['model'] = modelVars['model'].cuda()
         # summary(modelVars['model'], modelVars['model'].input_size)# (mdlParams['input_size'][2], mdlParams['input_size'][0], mdlParams['input_size'][1]))
-        # Loss, with class weighting
-        if mdlParams.get('focal_loss', False):
-            modelVars['criterion'] = utils.FocalLoss(alpha=class_weights.tolist())
-        elif mdlParams['balance_classes'] == 3 or mdlParams['balance_classes'] == 0 or mdlParams['balance_classes'] == 12:
-            modelVars['criterion'] = nn.CrossEntropyLoss()
-        elif mdlParams['balance_classes'] == 8:
-            modelVars['criterion'] = nn.CrossEntropyLoss(reduce=False)
-        elif mdlParams['balance_classes'] == 6 or mdlParams['balance_classes'] == 7:
-            modelVars['criterion'] = nn.CrossEntropyLoss(weight=torch.cuda.FloatTensor(class_weights.astype(np.float32)),
-                                                         reduce=False)
-        elif mdlParams['balance_classes'] == 10:
-            modelVars['criterion'] = utils.FocalLoss(mdlParams['numClasses'])
-        elif mdlParams['balance_classes'] == 11:
-            modelVars['criterion'] = utils.FocalLoss(mdlParams['numClasses'],
-                                                     alpha=torch.cuda.FloatTensor(class_weights.astype(np.float32)))
-        else:
-            modelVars['criterion'] = nn.CrossEntropyLoss(weight=torch.cuda.FloatTensor(class_weights.astype(np.float32)))
+
+        modelVars['criterion'] = nn.CrossEntropyLoss(weight=torch.cuda.FloatTensor(class_weights.astype(np.float32)))
 
         if mdlParams.get('meta_features', None) is not None:
+            #True for meta data
             if mdlParams['freeze_cnn']:
                 modelVars['optimizer'] = optim.Adam(filter(lambda p: p.requires_grad, modelVars['model'].parameters()),
                                                     lr=mdlParams['learning_rate_meta'])
@@ -400,7 +353,7 @@ def main():
         else:
             modelVars['optimizer'] = optim.Adam(modelVars['model'].parameters(), lr=mdlParams['learning_rate'])
 
-        # Decay LR by a factor of 0.1 every 7 epochs
+        # Decay LR by a factor of 0.2 every 25 epochs
         modelVars['scheduler'] = lr_scheduler.StepLR(modelVars['optimizer'], step_size=mdlParams['lowerLRAfter'],
                                                      gamma=1 / np.float32(mdlParams['LRstep']))
 
@@ -450,19 +403,17 @@ def main():
         print("Start training...")
         for step in range(start_epoch, mdlParams['training_steps'] + 1):
             # One Epoch of training
+            print(step)
             if step >= mdlParams['lowerLRat'] - mdlParams['lowerLRAfter']:
                 modelVars['scheduler'].step()
             modelVars['model'].train()
             for j, (inputs, labels, indices) in enumerate(modelVars['dataloader_trainInd']):
-                # print(indices)
-                # t_load = time.time()
                 # Run optimization
                 if mdlParams.get('meta_features', None) is not None:
                     inputs[0] = inputs[0].cuda()
                     inputs[1] = inputs[1].cuda()
                 else:
                     inputs = inputs.cuda()
-                # print(inputs.shape)
                 labels = labels.cuda()
                 # zero the parameter gradients
                 modelVars['optimizer'].zero_grad()
@@ -476,25 +427,12 @@ def main():
                         loss2 = modelVars['criterion'](outputs_aux, labels_aux)
                         loss = loss1 + mdlParams['aux_classifier_loss_fac'] * loss2
                     else:
-                        # print("load",time.time()-t_load)
-                        # t_fwd = time.time()
                         outputs = modelVars['model'](inputs)
-                        # print("forward",time.time()-t_fwd)
-                        # t_bwd = time.time()
                         loss = modelVars['criterion'](outputs, labels)
-                        # Perhaps adjust weighting of the loss by the specific index
-                    if mdlParams['balance_classes'] == 6 or mdlParams['balance_classes'] == 7 or mdlParams[
-                        'balance_classes'] == 8:
-                        # loss = loss.cpu()
-                        indices = indices.numpy()
-                        loss = loss * torch.cuda.FloatTensor(mdlParams['loss_fac_per_example'][indices].astype(np.float32))
-                        loss = torch.mean(loss)
-                        # loss = loss.cuda()
                     # backward + optimize only if in training phase
                     loss.backward()
                     modelVars['optimizer'].step()
-                    # print("backward",time.time()-t_bwd)
-            if step % mdlParams['display_step'] == 0 or step == 1:
+            if step % mdlParams['display_step'] == 0 or step == 1 or step == 101:
                 # Calculate evaluation metrics
                 if mdlParams['classification']:
                     # Adjust model state

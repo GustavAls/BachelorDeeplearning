@@ -19,6 +19,141 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import SVC
 import types
 from auto_augment import AutoAugment, Cutout
+import random
+import cv2
+from numba import jit
+import pickle
+import time
+
+def illum_est_mink(input_data, mink_norm=6):  # almost same white estimation as DaisyLab
+    assert mink_norm >= 1
+    kernel33 = np.ones((3, 3), np.uint8)
+
+    if np.issubdtype(input_data.dtype, np.floating):
+        input_float = input_data
+    else:
+        input_float = input_data.astype(np.float32)
+
+    mask_im2 = 1 - cv2.dilate((input_data.max(2) >= .995).astype(np.uint8), kernel33)
+    mask_im2[[0, -1], :] = 0
+    mask_im2[:, [0, -1]] = 0
+
+    # Hardcode for minkowski 6
+    assert mink_norm == 6
+    # kleur=input_float**mink_norm
+    if2 = input_float * input_float;
+    kleur = if2 * if2 * if2
+    white = (kleur * mask_im2[:, :, None]).mean(0).mean(0) ** (1 / mink_norm)
+    white /= np.linalg.norm(white)
+
+    sqrt3 = 3 ** (1 / 2)
+    return (white * sqrt3)
+
+
+class WhiteBalancer():
+    def __init__(self, pickle_path="mohanWhiteBalance.pkl"):
+
+        with open("mohanWhiteBalance.pkl", 'rb') as f:
+            self.wb_info = pickle.load(f)
+        self.white_norm = np.linalg.norm(self.wb_info['example']['white_in'])
+        self.normalize = lambda w: w * self.white_norm / np.linalg.norm(w)
+        whites = self.wb_info['whites']
+        # Grid sampling of white values
+        s = 50  # increase to sample more densely
+        d = {}
+        idxs = np.round(whites * s)
+        c_dist = ((idxs / 40 - whites) ** 2).sum(1)
+        idxs = idxs[:, 0] * s * s + idxs[:, 1] * s + idxs[:, 2]
+        for idx in range(len(idxs)):
+            grid_idx = idxs[idx]
+            dist = c_dist[idx]
+            if grid_idx in d:
+                if d[grid_idx][0] > dist:
+                    d[grid_idx] = (dist, whites[idx])
+            else:
+                d[grid_idx] = (dist, whites[idx])
+        self.whites = np.array([x[1] for x in d.values()])
+
+    def get_M(self, white_in, white_out):
+        query = np.hstack((self.normalize(white_in), self.normalize(white_out)))
+        cluster_idx = ((self.wb_info['centroids'] - query) ** 2).sum(1).argmin()
+        H = self.wb_info['H_list'][cluster_idx]
+        M = H.dot(query).reshape(11, 3)
+        return M
+
+    @staticmethod
+    @jit(nopython=True, fastmath=True, nogil=True)
+    def apply_M_flat(im, M):
+        out = np.empty_like(im)
+        m0_0 = M[0, 0];
+        m1_0 = M[1, 0];
+        m2_0 = M[2, 0];
+        m3_0 = M[3, 0];
+        m4_0 = M[4, 0];
+        m5_0 = M[5, 0];
+        m6_0 = M[6, 0];
+        m7_0 = M[7, 0];
+        m8_0 = M[8, 0];
+        m9_0 = M[9, 0];
+        m10_0 = M[10, 0]
+        m0_1 = M[0, 1];
+        m1_1 = M[1, 1];
+        m2_1 = M[2, 1];
+        m3_1 = M[3, 1];
+        m4_1 = M[4, 1];
+        m5_1 = M[5, 1];
+        m6_1 = M[6, 1];
+        m7_1 = M[7, 1];
+        m8_1 = M[8, 1];
+        m9_1 = M[9, 1];
+        m10_1 = M[10, 1]
+        m0_2 = M[0, 2];
+        m1_2 = M[1, 2];
+        m2_2 = M[2, 2];
+        m3_2 = M[3, 2];
+        m4_2 = M[4, 2];
+        m5_2 = M[5, 2];
+        m6_2 = M[6, 2];
+        m7_2 = M[7, 2];
+        m8_2 = M[8, 2];
+        m9_2 = M[9, 2];
+        m10_2 = M[10, 2]
+        for idx in range(im.shape[0]):
+            r = im[idx, 0]
+            g = im[idx, 1]
+            b = im[idx, 2]
+
+            ro = m0_0 * r + m1_0 * g + m2_0 * b + m3_0 * r * g + m4_0 * r * b + m5_0 * g * b + m6_0 * r * r + m7_0 * g * g + m8_0 * b * b + m9_0 * r * g * b + m10_0
+            go = m0_1 * r + m1_1 * g + m2_1 * b + m3_1 * r * g + m4_1 * r * b + m5_1 * g * b + m6_1 * r * r + m7_1 * g * g + m8_1 * b * b + m9_1 * r * g * b + m10_1
+            bo = m0_2 * r + m1_2 * g + m2_2 * b + m3_2 * r * g + m4_2 * r * b + m5_2 * g * b + m6_2 * r * r + m7_2 * g * g + m8_2 * b * b + m9_2 * r * g * b + m10_2
+            out[idx, 0] = ro
+            out[idx, 1] = go
+            out[idx, 2] = bo
+        return out
+
+    def apply_M(self, im, M):
+        return self.apply_M_flat(im.reshape(-1, 3), M).reshape(im.shape)
+
+    def transform(self, im, white_in, white_out, split_threshold=.3):
+        if np.linalg.norm(white_in - white_out) > split_threshold:
+            white_mid = (white_in + white_out) / 2
+            im, white_in = self.transform(im, white_in, white_mid, split_threshold)
+            white_in = white_mid
+            # white_in = (white_mid+white_in)/2 #hack to make converge
+            return self.transform(im, white_in, white_out, split_threshold)
+        else:
+            M = self.get_M(white_in, white_out)
+            white_out_actual = self.apply_M_flat(white_in[None], M).flatten()
+            return np.clip(self.apply_M(im, M), 0, 1), white_out_actual
+
+    def random_wb(self, im):
+        assert im.dtype == np.float32
+        assert random.choice(im.flat) >= 0.0
+        assert random.choice(im.flat) <= 1.0
+        white_in = illum_est_mink(im, mink_norm=6)
+        white_out = random.choice(self.whites)
+        return self.transform(im, white_in, white_out)[0]
+
 
 # Define ISIC Dataset Class
 class ISICDataset(Dataset):
@@ -31,6 +166,7 @@ class ISICDataset(Dataset):
             indSet (string): Indicates train, val, test
         """
         # Mdlparams
+        self.wb = WhiteBalancer()
         self.mdlParams = mdlParams
         # Number of classes
         self.numClasses = mdlParams['numClasses']
@@ -55,6 +191,7 @@ class ISICDataset(Dataset):
         # Potential setMean to deduce from channels
         self.setMean = mdlParams['setMean'].astype(np.float32)
         # Current indSet = 'trainInd'/'valInd'/'testInd'
+        self.color_augment = mdlParams['color_augmentation']
         self.indices = mdlParams[indSet]
         self.indSet = indSet
         # feature scaling for meta
@@ -323,6 +460,8 @@ class ISICDataset(Dataset):
                 x = Image.fromarray(np.array(x)[(x_loc-np.int32(self.input_size[0]/2.)):(x_loc-np.int32(self.input_size[0]/2.))+self.input_size[0],
                         (y_loc-np.int32(self.input_size[1]/2.)):(y_loc-np.int32(self.input_size[1]/2.))+self.input_size[1],:])
                 # First, to pytorch tensor (0.0-1.0)
+                # x = x/255
+                # x = self.wb.random_wb(x)
                 x = self.trans(x)
                 # Normalize
                 x = self.norm(x)
@@ -366,6 +505,8 @@ class ISICDataset(Dataset):
             else:
                 x = self.cropping(x)
             # To pytorch tensor (0.0-1.0)
+            # x = x/255
+            # x = self.wb.random_wb(x)
             x = self.trans(x)
             x = self.norm(x)
             # scale
@@ -373,6 +514,11 @@ class ISICDataset(Dataset):
                 x_meta = np.squeeze(self.feature_scaler.transform(np.expand_dims(x_meta,0)))
         else:
             # Apply
+            if self.color_augment:
+                x = np.asarray(x).astype(np.float32)/255
+                x = self.wb.random_wb(x)*255
+                x = Image.fromarray(x.astype('uint8'),'RGB')
+
             x = self.composed(x)
             # meta augment
             if self.mdlParams.get('meta_features',None) is not None:
@@ -627,6 +773,7 @@ def getErrClassification_mgpu(mdlParams, indices, modelVars, exclude_class=None)
         targets_mc = np.zeros([len(mdlParams[indices]),mdlParams['numClasses'],mdlParams['multiCropEval']])
         for i, (inputs, labels, inds) in enumerate(modelVars['dataloader_'+indices]):
             # Get data
+            print()
             if mdlParams.get('meta_features',None) is not None:
                 inputs[0] = inputs[0].cuda()
                 inputs[1] = inputs[1].cuda()
@@ -644,6 +791,7 @@ def getErrClassification_mgpu(mdlParams, indices, modelVars, exclude_class=None)
                 else:
                     outputs = modelVars['model'](inputs)
                 preds = modelVars['softmax'](outputs)
+
                 # Loss
                 loss = modelVars['criterion'](outputs, labels)
             # Write into proper arrays
@@ -725,6 +873,8 @@ def getErrClassification_mgpu(mdlParams, indices, modelVars, exclude_class=None)
         else:
             for i, (inputs, labels, indices) in enumerate(modelVars['dataloader_'+indices]):
                 # Get data
+                print("printing length of input to network from dataloader", len(inputs))
+                time.sleep(20)
                 if mdlParams.get('meta_features',None) is not None:
                     inputs[0] = inputs[0].cuda()
                     inputs[1] = inputs[1].cuda()
@@ -749,6 +899,8 @@ def getErrClassification_mgpu(mdlParams, indices, modelVars, exclude_class=None)
                 if i==0:
                     loss_all = np.array([loss.cpu().numpy()])
                     predictions = preds.cpu().numpy()
+                    print("sum of predictions, check if zero", np.sum(predictions))
+                    time.sleep(20)
                     tar_not_one_hot = labels.data.cpu().numpy()
                     tar = np.zeros((tar_not_one_hot.shape[0], mdlParams['numClasses']))
                     tar[np.arange(tar_not_one_hot.shape[0]),tar_not_one_hot] = 1

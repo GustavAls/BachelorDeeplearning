@@ -31,7 +31,7 @@ def init(mdlParams_):
     mdlParams['classification'] = True
     mdlParams['balance_classes'] = 9
     mdlParams['extra_fac'] = 1.0
-    mdlParams['numClasses'] = 9
+    mdlParams['numClasses'] = 8
     mdlParams['no_c9_eval'] = True
     mdlParams['numOut'] = mdlParams['numClasses']
     mdlParams['numCV'] = 1
@@ -51,7 +51,7 @@ def init(mdlParams_):
     # Divide learning rate by this value
     mdlParams['LRstep'] = 5
     # Maximum number of training iterations
-    mdlParams['training_steps'] = 100 #250
+    mdlParams['training_steps'] = 150 #250
     # Display error every X steps
     mdlParams['display_step'] = 10
     # Scale?
@@ -228,6 +228,7 @@ def init(mdlParams_):
         indices = pickle.load(f)
     mdlParams['trainIndCV'] = indices['trainIndCV']
     mdlParams['valIndCV'] = indices['valIndCV']
+    print(indices.keys())
     if mdlParams['exclude_inds']:
         exclude_list = np.array(exclude_list)
         all_inds = np.arange(len(mdlParams['im_paths']))

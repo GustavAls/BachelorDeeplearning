@@ -49,7 +49,7 @@ def init(mdlParams_):
 
     ### Training Parameters ###
     # Batch size
-    mdlParams['batchSize'] = 20#*len(mdlParams['numGPUs'])
+    mdlParams['batchSize'] = 16#*len(mdlParams['numGPUs'])
     # Initial learning rate
     mdlParams['learning_rate'] = 0.000015#*len(mdlParams['numGPUs'])
     # Lower learning rate after no improvement over 100 epochs
@@ -59,7 +59,7 @@ def init(mdlParams_):
     # Divide learning rate by this value
     mdlParams['LRstep'] = 5
     # Maximum number of training iterations
-    mdlParams['training_steps'] = 100 #250
+    mdlParams['training_steps'] = 150 #250
     # Display error every X steps
     mdlParams['display_step'] = 10
     # Scale?
@@ -231,7 +231,7 @@ def init(mdlParams_):
     with open(mdlParams['saveDir'] + 'indices_isic2019.pkl','rb') as f:
         indices = pickle.load(f)
     mdlParams['trainIndCV'] = indices['trainIndCV']
-    mdlParams['valIndCV'] = indices['valIndCV']
+    # mdlParams['valIndCV'] = indices['valIndCV']
     if mdlParams['exclude_inds']:
         exclude_list = np.array(exclude_list)
         all_inds = np.arange(len(mdlParams['im_paths']))

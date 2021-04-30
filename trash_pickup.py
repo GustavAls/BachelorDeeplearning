@@ -41,13 +41,22 @@ import shutil
 full_data = os.listdir(paths[0])
 cropped_data = os.listdir(return_folder)
 
-unused_data = list(set(full_data)-set(cropped_data))
+path1 = r'C:\Users\ptrkm\Bachelor\2018_test\ISIC2018_Task3_Test_Input'
+path2 = r'C:\Users\ptrkm\Bachelor\2018_test\cropped'
+original_folders = os.listdir(path1)
+return_folders = os.listdir(path2)
+
 idx = 0
 
+
+# num_png = np.sum(['png' in i for i in list(cropped_data)])
+
+unused_data = list(set(original_folders) - set(return_folders))
+breakpoint()
 for i in unused_data:
     if 'txt' not in i:
         try:
-            image = cv2.imread(paths[0]+i)
+            image = cv2.imread(os.path.join(path1,i))
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         except:
             print(i)
@@ -62,29 +71,30 @@ for i in unused_data:
                     try:
                         image = cv2.resize(image, dsize=(round(image.shape[0] * ratio), preserve_size))
                     except:
-                        print("resize problem on image" + images)
-                        errors.append(images)
+                        print("resize problem on image" + image)
+                        errors.append(image)
                         continue
         R, G, B, new_image = cc.general_color_constancy(image, 0, 6, 0)
         new_image = np.uint8(new_image)
 
         im = Image.fromarray(new_image).convert('RGB')
-        im.save(return_folder + i)
+        im.save(os.path.join(path2,i))
+
 
     idx += 1
 
     print(idx)
 
 
-
-for i, images in enumerate(cropped_data):
+os.chdir(path2)
+for i, images in enumerate(os.listdir(path2)):
     if 'txt' not in images:
         try:
-            image = cv2.imread(return_folder+images)
+            image = cv2.imread(images)
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-            if image.shape[0] < 100 or image.shape[1] < 100:
-                image = cv2.imread(paths[0]+images)
+            if image.shape[0] < 100 or image.shape[1] < 100 or np.var(image) < 10:
+                image = cv2.imread(os.path.join(path1, images))
                 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
                 if resize:
@@ -104,7 +114,7 @@ for i, images in enumerate(cropped_data):
                 new_image = np.uint8(new_image)
 
                 im = Image.fromarray(new_image).convert('RGB')
-                im.save(return_folder + images)
+                im.save(images)
         except:
             print(images)
             continue
