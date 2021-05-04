@@ -3,6 +3,8 @@
 import numpy as np
 import pandas as pd
 import sklearn.preprocessing
+from numba.cuda.cudaimpl import ptx_clz
+
 import utils
 from sklearn.utils import class_weight
 import psutil
@@ -21,7 +23,10 @@ show_AISC_results = False
 path = r'C:\Users\ptrkm\Bachelor\AISC_results'
 average_voting = True
 majority_voting = False
-
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import GradientBoostingClassifier
 
 
 class IdentityTransformer(BaseEstimator,TransformerMixin):
@@ -76,6 +81,19 @@ class data_visualiser:
         :param network_list: list of networks
         :return: list containing pkl files of networks
         """
+        our_ensemble = ['res_101_rr', 'efficientnet_b5_rr', 'se_resnet101_rr', 'nasnetamobile_rr',
+                        'efficientnet_b6_ss', 'resnext_101_32_8_wsl_rr', 'dense_169_rr']
+
+        their_ensemble = ['efficientnet_b1_rr', 'efficientnet_b2_rr', 'efficientnet_b3_rr',
+                          'efficientnet_b4_rr', 'efficientnet_b5_rr', 'efficientnet_b0_ss', 'efficientnet_b1_ss',
+                          'efficientnet_b2_ss', 'efficientnet_b3_ss', 'efficientnet_b4_ss', 'efficientnet_b5_ss',
+                          'efficientnet_b6_ss', 'senet154_ss']
+        if type(network_list) is str:
+            if network_list in globals():
+                network_list = globals()[network_list]
+            elif network_list in locals():
+                network_list = locals()[network_list]
+
         self.rr_list = [i for i in network_list if 'rr' in i]
         self.ss_list = [i for i in network_list if 'ss' in i]
 
@@ -127,21 +145,36 @@ class data_visualiser:
                                     self.pkl_list.append(new_dict)
                                 print(ssr, self.pkl_list[-1]['bestPred'].shape)
 
-    def create_prediction_pkl(self, location,multiple = False, evaluation_set = 'ISIC'):
+    def create_prediction_pkl(self, location,multiple = False, evaluation_set = 'ISIC', network_name = None):
 
         if not multiple:
             if 'C:' not in location:
                 pcl = pickle.load(open(os.path.join(self.ground_path,location),'rb'))
-                predictions = pcl['extPred'][0]
-                if evaluation_set == 'ISIC':
-                    targets = self.isic_labels.drop(['image'],axis = 1).values
-                elif evaluation_set == 'AISC':
-                    targets = self.aisc_labels.drop(['image'],axis =1).values
+            else:
+                pcl = pickle.load(open(location,'rb'))
 
-                name = location
+            predictions = pcl['extPred'][0]
+            if evaluation_set == 'ISIC':
+                targets = self.isic_labels.drop(['image'],axis = 1).values
+            elif evaluation_set == 'AISC':
+                targets = self.aisc_labels.drop(['image'],axis =1).values
+
+            name = location
+            self.pkl = {'predictions': predictions,
+                        'targets': targets,
+                        'names': name}
+        if multiple:
+            if 'C:' not in location:
+                pcl = pickle.load(open(os.path.join(self.ground_path,location),'rb'))
+            else:
+                pcl = pickle.load(open(location,'rb'))
+
+            predictions = pcl['extPred'][0]
+            if network_name is not None:
+                name = network_name
                 self.pkl = {'predictions': predictions,
-                            'targets': targets,
-                            'names': name}
+                            'name': name}
+
 
     def create_pkl(self, network_names = None, create_ensemble = True, evaluation_set=None, already_created = None):
         """
@@ -190,11 +223,10 @@ class data_visualiser:
                 elif evaluation_set == 'combined':
                     targets = self.aisc_isic_labels[self.indices_dict['combined']['valIndCV']]
         else:
+            self.create_pkl_list(already_created)
             predictions = self.ensemble_pkls[already_created+'_predictions'].drop(['image'],axis =1).values
             targets = self.ensemble_pkls[list(self.ensemble_pkls.keys())[0]].drop(['image'], axis =1).values
             network_names = already_created
-
-
 
         self.pkl = {'predictions': predictions,
                     'targets': targets,
@@ -406,6 +438,57 @@ class data_visualiser:
             # plt.rc('axes', label_size = '10')
             plt.savefig(os.path.join(self.ground_path,self.confusion_matrix_name+'.eps'),format = 'eps',pad_inches = 0)
 
+def ensembling(predictions_list,indices, labels, test_predictions = None, n_predictors = 'full', over_sampling = 0):
+    """
+
+    :param predictions_list: list of data_visualiser instances
+    :param indices: train and validation indices
+    :param labels: true labels of predictions
+    :param test_predictions: list of data_visualiser instances on test set
+    :return: new predictions
+    """
+    if n_predictors == 'full':
+        x_matrix = np.zeros((len(labels), len(labels.drop(['image'],axis=1).columns) * len(predictions_list)))
+    else:
+        x_matrix = np.zeros((len(labels),len(predictions_list)))
+    y_matrix = labels.drop(['image'], axis = 1).values
+    for j, (networks_train, networks_val) in enumerate(predictions_list):
+        if n_predictors == 'full':
+            x_mat = np.zeros((y_matrix.shape[0]+over_sampling, 1))
+            x_mat[indices['trainIndCV']] = networks_train.pkl['predictions']
+            x_mat[indices['valIndCV']] = networks_val.pkl['predictions']
+
+            if over_sampling != 0:
+                max_index = np.max(list(set(indices['trainIndCV'])-set(indices['valIndCV'])))
+                x_mat[max_index:] = np.random.choice(
+                    np.argmax(networks_val.pkl['predictions'], axis = 1),
+                    size = over_sampling)
+
+
+
+        else:
+            x_mat = np.zeros((y_matrix.shape[0]+over_sampling, 1))
+            x_mat[indices['trainIndCV']] = np.argmax(networks_train.pkl['predictions'], axis = 1)
+            x_mat[indices['valIndCV']] = np.argmax(networks_val.pkl['predictions'],axis = 1)
+
+            if over_sampling != 0:
+                max_index = np.max(list(set(indices['trainIndCV'])+set(indices['valIndCV'])))
+                x_mat[max_index:] = np.random.choice(np.argmax(networks_val.pkl['predictions'],axis=1),
+                                                     size = over_sampling)
+
+        if j == 0:
+            x_matrix = x_mat
+        else:
+            x_matrix = np.concatenate((x_matrix, x_mat), axis = 1)
+
+    random_forest = RandomForestClassifier(n_estimators=100).fit(x_matrix,y_matrix).predict_proba(test_predictions)
+    svc = SVC().fit(x_matrix,y_matrix).predict(test_predictions)
+    gradient_boost = GradientBoostingClassifier().fit(x_matrix,y_matrix).predict_proba(test_predictions)
+    decision_tree = DecisionTreeClassifier().fit(x_matrix,y_matrix).predict_proba(test_predictions)
+
+    return random_forest, svc, gradient_boost, decision_tree
+
+
 
 def main():
     our_ensemble = ['res_101_rr', 'efficientnet_b5_rr', 'se_resnet101_rr', 'nasnetamobile_rr',
@@ -417,9 +500,12 @@ def main():
                       'efficientnet_b6_ss', 'senet154_ss']
 
     gustav_bunder = data_visualiser()
-    # gustav_bunder.create_pkl_list(network_list=their_ensemble)
+    # gustav_bunder.create_prediction_pkl(location= r'C:\Users\ptrkm\Bachelor\2018_test\eval_predictions_2018\2018_mixed.efficientnet_b4_rr_bestgpu2_90_predn.pkl',
+    #                                     evaluation_set='AISC', )
+    gustav_bunder.create_pkl_list(network_list=their_ensemble)
+    gustav_bunder.create_pkl(already_created='their_ensemble')
 
-    gustav_bunder.create_prediction_pkl(location='2019_rr.resnet101_rr_AISC_gpu0_58_predn.pkl')
-    gustav_bunder.score_metrics(confusion_plot_name='res101_aisc_on_isic')
+    # gustav_bunder.create_predictixon_pkl(location='2019_rr.resnet101_rr_AISC_gpu0_58_predn.pkl')
+    gustav_bunder.score_metrics()
     breakpoint()
 main()

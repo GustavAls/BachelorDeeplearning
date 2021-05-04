@@ -192,6 +192,8 @@ class ISICDataset(Dataset):
         self.setMean = mdlParams['setMean'].astype(np.float32)
         # Current indSet = 'trainInd'/'valInd'/'testInd'
         self.color_augment = mdlParams['color_augmentation']
+        if self.color_augment:
+            print("applied mohan color augmentation")
         self.indices = mdlParams[indSet]
         self.indSet = indSet
         # feature scaling for meta
@@ -519,6 +521,7 @@ class ISICDataset(Dataset):
                 x = self.wb.random_wb(x)*255
                 x = Image.fromarray(x.astype('uint8'),'RGB')
 
+
             x = self.composed(x)
             # meta augment
             if self.mdlParams.get('meta_features',None) is not None:
@@ -550,7 +553,7 @@ class ISICDataset(Dataset):
             if self.mdlParams.get('meta_features',None) is not None:
                 return (x, x_meta), y, idx
             else:
-                return x, y, idx
+                return x, y, idx, self.im_paths[idx]
 
 
 
@@ -769,11 +772,18 @@ def getErrClassification_mgpu(mdlParams, indices, modelVars, exclude_class=None)
         predictions = np.zeros([len(mdlParams[indices]),mdlParams['numClasses']])
         targets = np.zeros([len(mdlParams[indices]),mdlParams['numClasses']])
         loss_mc = np.zeros([len(mdlParams[indices])])
+        image_list = []
         predictions_mc = np.zeros([len(mdlParams[indices]),mdlParams['numClasses'],mdlParams['multiCropEval']])
         targets_mc = np.zeros([len(mdlParams[indices]),mdlParams['numClasses'],mdlParams['multiCropEval']])
-        for i, (inputs, labels, inds) in enumerate(modelVars['dataloader_'+indices]):
+        for i, (inputs, labels, inds,paths) in enumerate(modelVars['dataloader_'+indices]):
             # Get data
-            print()
+            if type(paths) is list:
+                image_list += paths
+            elif type(paths) is str:
+                image_list += [paths]
+            elif type(paths) is np.ndarray:
+                image_list += paths.tolist()
+
             if mdlParams.get('meta_features',None) is not None:
                 inputs[0] = inputs[0].cuda()
                 inputs[1] = inputs[1].cuda()
@@ -964,7 +974,7 @@ def getErrClassification_mgpu(mdlParams, indices, modelVars, exclude_class=None)
     for i in range(num_classes):
         fpr[i], tpr[i], _ = roc_curve(targets[:, i], predictions[:, i])
         roc_auc[i] = auc(fpr[i], tpr[i])
-    return np.mean(loss_all), acc, sensitivity, specificity, conf, f1, roc_auc, wacc, predictions, targets, predictions_mc
+    return np.mean(loss_all), acc, sensitivity, specificity, conf, f1, roc_auc, wacc, predictions, targets, predictions_mc, image_list
 
 
 def modify_densenet_avg_pool(model):
