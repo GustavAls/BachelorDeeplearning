@@ -6,15 +6,16 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from random import sample
+import random
 from sklearn.metrics import confusion_matrix, auc, roc_curve, accuracy_score, balanced_accuracy_score
 os.chdir(r'C:\Users\Bruger\Desktop')
 wb_aisc = True
 aisc = False
-plot_roc = False
+plot_roc = True
 write_to_pkl = False
 
 if wb_aisc:
-    pcl = pickle.load(open(r'C:\Users\Bruger\Desktop\color_augment_aisc_predn.pkl', "rb"))
+    pcl = pickle.load(open(r'C:\Users\Bruger\Desktop\2019_rr.resnet101_rr_wb_bestgpu4_30_predn.pkl', "rb"))
     labels = pd.read_csv(r'labels.csv')
     diagnosis = labels.columns
     diagnosis = np.asarray(diagnosis[1:9])
@@ -37,8 +38,11 @@ elif aisc:
     predictions = pcl['extPred'][0]
 
 
+
 if wb_aisc:
     predictions = np.asarray(averaged_predictions)
+
+y_pred_pre_average = np.argmax(averaged_predictions)
 
 y_pred = np.argmax(predictions, axis=1)
 y_true = np.argmax(labels, axis=1)
@@ -83,6 +87,7 @@ elif aisc:
     print("Result for evaluating an AISC trained ResNet101 on ISIC:")
 print("Pr class weighted accuracy: " + str(weighted_accuracies))
 print("Mean Weighted accuracy " + str(weighted_accuracy))
+print("Accuracy: " + str(accuracy))
 print("Pr class AUC: " + str(roc_auc))
 print("Mean AUC: " + str(auc))
 print("Confusion matrix:")
