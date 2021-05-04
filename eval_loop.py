@@ -38,7 +38,8 @@ network_list_eff = ['efficientnet_b0_rr', 'efficientnet_b1_rr','efficientnet_b2_
 
 network_list_eff = ['2019_rr.test_' + i if 'rr' in i else '2019.test_' + i for i in network_list_eff]
 
-network_list_eff = ['2018_mixed.efficientnet_b4_rr']
+network_list_eff = ['2019_rr.test_res101_rr']
+
 
 network_list = network_list_eff
 mdlParams = {}
@@ -252,6 +253,7 @@ for networks_peter in network_list:
     # allData['convergeTime'] = {}
     allData['bestPred_meta'] = {}
     allData['targets_meta'] = {}
+    allData['all_images'] = {}
 
     if len(sys.argv) > 8:
         for cv in range(mdlParams['numCV']):
@@ -352,10 +354,14 @@ for networks_peter in network_list:
                     # print("class before",class_weights_)
                     class_weights = np.zeros([mdlParams['numClasses']])
                     class_weights[:8] = class_weights_
-                else:
+                elif mdlParams['numClasses'] == 8:
                     # Class weights for the AISC dataset
                     class_weights = np.array(
                         [0.06544445, 0.81089767, 0.02461471, 0.00803448, 0.06332627, 0.008984, 0.01599591, 0.00270251])
+                elif mdlParams['numClasses'] == 7:
+                    class_weights = np.array(
+                        [0.06544445, 0.81089767, 0.02461471, 0.00803448, 0.06332627, 0.008984, 0.01599591]
+                    )
                 print("Current class weights", class_weights)
                 if isinstance(mdlParams['extra_fac'], float):
                     class_weights = np.power(class_weights, mdlParams['extra_fac'])
@@ -465,10 +471,11 @@ for networks_peter in network_list:
             # Get predictions
             # Turn off the skipping of the last class
             mdlParams['no_c9_eval'] = False
-            loss, accuracy, sensitivity, specificity, conf_matrix, f1, auc, waccuracy, predictions, targets, predictions_mc = utils.getErrClassification_mgpu(
+            loss, accuracy, sensitivity, specificity, conf_matrix, f1, auc, waccuracy, predictions, targets, predictions_mc,images = utils.getErrClassification_mgpu(
                 mdlParams, 'valInd', modelVars)
             # Save predictions
             allData['extPred'][cv] = predictions
+            allData['all_images'][cv] = images
             print("extPred shape", allData['extPred'][cv].shape)
             pklFileName = networks_peter + "_" + sys.argv[6] + "_" + str(int(np.max(global_steps))) + "_predn.pkl"
 
