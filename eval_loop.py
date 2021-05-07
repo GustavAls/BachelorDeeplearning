@@ -28,17 +28,30 @@ import imagesize
 # add configuration file
 # Dictionary for model configuration
 network_list_eff = ['efficientnet_b0_rr', 'efficientnet_b1_rr','efficientnet_b2_rr',
-                    'efficientnet_b3_rr', 'efficientnet_b4_rr','efficientnet_b5_rr',
-                    'efficientnet_b6_rr', 'efficientnet_b0_ss_autoaugment', 'res101_rr','se_resnet101_rr',
+                    'efficientnet_b3_rr', 'efficientnet_b4_rr','efficientnet_b5_rr', 'efficientnet_b0_ss_autoaugment', 'res101_rr','se_resnet101_rr',
                     'nasnetamobile_rr','resnext101_32_8_wsl_rr','efficientnet_b1_ss','efficientnet_b2_ss',
-                    'efficientnet_b3_ss','efficientnet_b4_ss','efficientnet_b5_ss','efficientnet_b6_ss']
+                    'efficientnet_b3_ss','efficientnet_b4_ss','efficientnet_b5_ss','efficientnet_b6_ss','senet154_ss']
 
+if sys.argv[2] == 'original':
+    network_list_eff = ['2019_rr.test_' + i if 'rr' in i else '2019.test_' + i for i in network_list_eff]
+elif sys.argv[2] == 'res101_aisc':
+    network_list_eff = ['2019_rr.resnet101_rr_AISC']
+elif sys.argv[2] == 'wb1':
+    network_list_eff = ['2019_rr.resnet101_rr_color_augment']
+elif sys.argv[2] == 'wb2':
+    network_list_eff = ['2019_rr.resnet101_rr_wb']
+elif sys.argv[2] == '2019_mixed':
+    network_list_eff = ['efficientnet_b0_rr','efficientnet_b1_rr','efficientnet_b2_rr',
+                    'efficientnet_b3_rr', 'efficientnet_b4_rr','efficientnet_b5_rr', 'resnet101_rr', 'se_resnet101_rr',
+                        'nasnetamobile_rr', 'resnext101_32_8_rr', 'efficientnet_b0_ss','efficientnet_b1_ss', 'efficientnet_b2_ss',
+                        'efficientnet_b3_ss', 'efficientnet_b4_ss', 'efficientnet_b5_ss', 'efficientnet_b6_ss']
+    network_list_eff = ['2019_mixed.' + i for i in network_list_eff]
+elif sys.argv[2] == 'aisc_isic_on_2019':
+    network_list_eff = ['2019_rr.resnet101_rr_AISC_ISIC_pt2']
+elif sys.argv[2] == '2019_mixed_all_but_missing':
+    network_list_eff = ['senet154_ss']
+    network_list_eff = ['2019_mixed.' + i for i in network_list_eff]
 
-
-
-network_list_eff = ['2019_rr.test_' + i if 'rr' in i else '2019.test_' + i for i in network_list_eff]
-
-network_list_eff = ['2019_rr.test_res101_rr']
 
 
 network_list = network_list_eff
@@ -51,9 +64,9 @@ mdlParams['color_augmentation'] = False
 for networks_peter in network_list:
     print(networks_peter)
     if 'rr' in networks_peter:
-        sys.argv[3] = 'multideterm1sc4f4'
+        crop_strategy = 'multideterm1sc4f4'
     else:
-        sys.argv[3] = 'multiorder36'
+        crop_strategy = 'multiorder36'
     # If there is another argument, its which checkpoint should be used
     if len(sys.argv) > 6:
         if 'last' in sys.argv[6]:
@@ -92,33 +105,33 @@ for networks_peter in network_list:
         mdlParams['saveDirBase'] = sys.argv[5]
 
     # Third is multi crop yes no
-    if 'multi' in sys.argv[3]:
-        if 'rand' in sys.argv[3]:
-            mdlParams['numRandValSeq'] = [int(s) for s in re.findall(r'\d+', sys.argv[3])][0]
+    if 'multi' in crop_strategy:
+        if 'rand' in crop_strategy:
+            mdlParams['numRandValSeq'] = [int(s) for s in re.findall(r'\d+', crop_strategy)][0]
             print("Random sequence number", mdlParams['numRandValSeq'])
         else:
             mdlParams['numRandValSeq'] = 0
-        mdlParams['multiCropEval'] = [int(s) for s in re.findall(r'\d+', sys.argv[3])][-1]
+        mdlParams['multiCropEval'] = [int(s) for s in re.findall(r'\d+', crop_strategy)][-1]
         mdlParams['voting_scheme'] = sys.argv[4]
-        if 'scale' in sys.argv[3]:
+        if 'scale' in crop_strategy:
             print("Multi Crop and Scale Eval with crop number:", mdlParams['multiCropEval'], " Voting scheme: ",
                   mdlParams['voting_scheme'])
             mdlParams['orderedCrop'] = False
-            mdlParams['scale_min'] = [int(s) for s in re.findall(r'\d+', sys.argv[3])][-2] / 100.0
-        elif 'determ' in sys.argv[3]:
+            mdlParams['scale_min'] = [int(s) for s in re.findall(r'\d+', crop_strategy)][-2] / 100.0
+        elif 'determ' in crop_strategy:
             # Example application: multideterm5sc3f2
             mdlParams['deterministic_eval'] = True
-            mdlParams['numCropPositions'] = [int(s) for s in re.findall(r'\d+', sys.argv[3])][-3]
-            num_scales = [int(s) for s in re.findall(r'\d+', sys.argv[3])][-2]
+            mdlParams['numCropPositions'] = [int(s) for s in re.findall(r'\d+', crop_strategy)][-3]
+            num_scales = [int(s) for s in re.findall(r'\d+', crop_strategy)][-2]
             all_scales = [1.0, 0.5, 0.75, 0.25, 0.9, 0.6, 0.4]
             mdlParams['cropScales'] = all_scales[:num_scales]
-            mdlParams['cropFlipping'] = [int(s) for s in re.findall(r'\d+', sys.argv[3])][-1]
+            mdlParams['cropFlipping'] = [int(s) for s in re.findall(r'\d+', crop_strategy)][-1]
             print("deterministic eval with crops number", mdlParams['numCropPositions'], "scales", mdlParams['cropScales'],
                   "flipping", mdlParams['cropFlipping'])
             mdlParams['multiCropEval'] = mdlParams['numCropPositions'] * len(mdlParams['cropScales']) * mdlParams[
                 'cropFlipping']
             mdlParams['offset_crop'] = 0.2
-        elif 'order' in sys.argv[3]:
+        elif 'order' in crop_strategy:
             mdlParams['orderedCrop'] = True
             if mdlParams.get('var_im_size', True):
                 # Crop positions, always choose multiCropEval to be 4, 9, 16, 25, etc.
@@ -212,9 +225,9 @@ for networks_peter in network_list:
                     print("Shape", i + 1, im_crop.shape)
             print("Multi Crop with order with crop number:", mdlParams['multiCropEval'], " Voting scheme: ",
                   mdlParams['voting_scheme'])
-            if 'flip' in sys.argv[3]:
+            if 'flip' in crop_strategy:
                 # additional flipping, example: flip2multiorder16
-                mdlParams['eval_flipping'] = [int(s) for s in re.findall(r'\d+', sys.argv[3])][-2]
+                mdlParams['eval_flipping'] = [int(s) for s in re.findall(r'\d+', crop_strategy)][-2]
                 print("Additional flipping", mdlParams['eval_flipping'])
         else:
             print("Multi Crop Eval with crop number:", mdlParams['multiCropEval'], " Voting scheme: ",
@@ -497,6 +510,6 @@ for networks_peter in network_list:
     print("Mean AUC", np.array([np.mean(allData['aucBest'])]), "+-", np.array([np.std(np.mean(allData['aucBest'], 1))]))
     print("sum check#######", np.sum(predictions))
     # Save dict with results
-    mdlParams['saveDirBase'] = r'/home/s184400/eval_predictions'
+    mdlParams['saveDirBase'] = sys.argv[3]
     with open(mdlParams['saveDirBase'] + "/" + pklFileName, 'wb') as f:
         pickle.dump(allData, f, pickle.HIGHEST_PROTOCOL)

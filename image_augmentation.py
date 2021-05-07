@@ -55,23 +55,23 @@ def plot_images(isic_path, aisc_path, number_isic: int, number_aisc: int):
     aisc_images = []
     isic_images = []
 
-    for file in isic_image_path:
-        isic_images.append(cv2.cvtColor(cv2.imread(file), cv2.COLOR_BGR2RGB))
+    for file in isic_images_path:
+        isic_images.append(cv2.cvtColor(cv2.imread(isic_path + file), cv2.COLOR_BGR2RGB))
 
-    for file in aisc_image_path:
-        aisc_images.append(cv2.cvtColor(cv2.imread(file), cv2.COLOR_BGR2RGB))
+    for file in aisc_images_path:
+        aisc_images.append(cv2.cvtColor(cv2.imread(aisc_path + file), cv2.COLOR_BGR2RGB))
 
-    all_images = aisc_images.append(isic_images)
+    all_images = aisc_images + isic_images
 
     number_of_columns = 20
     image_width = 1600
-    small_width =  image_width / number_of_columns
+    small_width =  int(image_width / number_of_columns)
     small_image_ratio = 16/9
-    small_height = small_width / small_image_ratio
+    small_height = int(small_width / small_image_ratio)
 
     number_isic_rows = math.ceil(number_isic / number_of_columns)
     number_aisc_rows = math.ceil(number_aisc / number_of_columns)
-    number_of_rows = math.ceil(number_isic_rows * number_aisc_rows)
+    number_of_rows = math.ceil(number_isic_rows + number_aisc_rows)
 
     idx = 0
     canvas = np.zeros((small_height * number_of_rows, image_width, 3))
@@ -79,12 +79,26 @@ def plot_images(isic_path, aisc_path, number_isic: int, number_aisc: int):
     for i in range(number_of_rows):
         for j in range(number_of_columns):
             print("IDX: " + str(idx))
-            resized_image = cv2.resize(all_images[idx], (small_width, small_height), interpolation=cv2.INTER_AREA)
-            canvas[i * small_height:(i + 1) * small_height, j * small_width:(j + 1) * small_width, :] = np.array(
-                resized_image).astype('uint8')
+            if idx < len(all_images):
+                resized_image = cv2.resize(all_images[idx], (small_width, small_height), interpolation=cv2.INTER_AREA)
+                canvas[i * small_height:(i + 1) * small_height, j * small_width:(j + 1) * small_width, :] = np.array(
+                    resized_image).astype('uint8')
+
             idx += 1
+    plt.figure()
+    plt.imshow(canvas.astype('uint8'))
+    # Turn off tick labels
+    plt.axis('off')
 
+def main():
+    # image_path = r'C:\Users\Bruger\OneDrive\DTU - General engineering\6. Semester\Bachelor\ISBI2016_ISIC_Part2B_Training_Data\WBAugmented'
+    # save_path = r'C:\Users\Bruger\OneDrive\DTU - General engineering\6. Semester\Bachelor\ISBI2016_ISIC_Part2B_Training_Data\\AugmentedImages.png',
 
-image_path = r'C:\Users\Bruger\OneDrive\DTU - General engineering\6. Semester\Bachelor\ISBI2016_ISIC_Part2B_Training_Data\WBAugmented'
-save_path = r'C:\Users\Bruger\OneDrive\DTU - General engineering\6. Semester\Bachelor\ISBI2016_ISIC_Part2B_Training_Data\\AugmentedImages.png',
+    isic_image_path = r'C:\Users\Bruger\OneDrive\DTU - General engineering\6. Semester\Bachelor\ISBI2016_ISIC_Part2B_Training_Data\ISBI2016_ISIC_Part2B_Training_Data\\'
+    aisc_image_path = r'C:\Users\Bruger\AISC_data\images\photodermoscopybaseline-cropped\\'
 
+    plot_images(isic_path=isic_image_path, aisc_path=aisc_image_path, number_aisc=200, number_isic=400)
+    plt.savefig(r'C:\Users\Bruger\OneDrive\DTU - General engineering\6. Semester\Bachelor\pictures\no_cc_pictureplot.png')
+    plt.show()
+
+main()
