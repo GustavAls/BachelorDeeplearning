@@ -13,6 +13,12 @@ os.chdir(r'C:\Users\ptrkm\Bachelor')
 # breakpoint()
 
 #
+pcl = pickle.load(open(r'C:\Users\ptrkm\Bachelor\new_pickle_results.pkl','rb'))
+
+breakpoint()
+
+
+
 
 pcl = pickle.load(open(r'2019_rr.test_res101_rr_bestgpu1_130_predn.pkl', "rb"))
 labels = pd.read_csv(r'labels.csv')
@@ -37,6 +43,7 @@ for idx,ims in enumerate(pcl['all_images'][0]):
 
 print(metric.accuracy_score(np.argmax(np.array(labels_new),axis=1),np.argmax(np.array(preds_new),axis=1)))
 print(metric.balanced_accuracy_score(np.argmax(np.array(labels_new),axis=1),np.argmax(np.array(preds_new),axis=1)))
+print(metric.confusion_matrix(np.argmax(np.array(labels_new),axis=1),np.argmax(np.array(preds_new),axis=1)))
 
 breakpoint()
 

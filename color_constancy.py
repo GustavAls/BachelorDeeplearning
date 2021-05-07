@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import cv2
 from scipy import signal
 from scipy import ndimage
-from PIL import Image
 plt.close('all')
 
 def dilation33(image):
@@ -172,11 +171,24 @@ def set_border(image, width, method = 0):
     return out
 
 
-def general_color_constancy(image, gaussian_differentiation=0, minkowski_norm=5, sigma=1, mask_image=0):
-    image = np.array(image)
-    y_height, x_height, dimension = image.shape
-    if mask_image == 0:
-        mask_image = np.zeros((y_height, x_height))
+
+class general_color_constancy:
+
+    def __init__(self,gaussian_differentiation=0, minkowski_norm=6, sigma=0, mask_image=0):
+        self.gaussian_differentiation = gaussian_differentiation
+        self.minkowski_norm = minkowski_norm
+        self.sigma = sigma
+        self.mask_image=mask_image
+
+    def color_augment(self,image):
+        # print("input image was of format {}".format(type(image)))
+        image = np.array(image)
+        # print("input image was changed to format {}".format(image.dtype))
+
+
+        y_height, x_height, dimension = image.shape
+        if self.mask_image == 0:
+            mask_image = np.zeros((y_height, x_height))
 
     #Removing saturated points
     saturation_threshold = 255
@@ -236,20 +248,22 @@ def general_color_constancy(image, gaussian_differentiation=0, minkowski_norm=5,
 
     return white_R, white_G, white_B, out_image
 #
-test_img = cv2.imread(r'C:\Users\Bruger\Pictures\building1.jpg', 1)
-# test_img = cv2.imread(r'C:\Users\ptrkm\OneDrive\Dokumenter\TestFolder\ISIC_0000001.jpg', 1)
+# test_img = cv2.imread(r'C:\Users\Bruger\Pictures\building1.jpg', 1)
+# # test_img = cv2.imread(r'C:\Users\ptrkm\OneDrive\Dokumenter\TestFolder\ISIC_0000001.jpg', 1)
 # im_rgb = cv2.cvtColor(test_img, cv2.COLOR_BGR2RGB)
-im_rgb = Image.open(r'C:\Users\Bruger\Pictures\building1.jpg')
-# imtest = np.random.normal(100,10, (250,250,3))
-
-R, G, B, test_img1 = general_color_constancy(im_rgb, gaussian_differentiation=1, minkowski_norm=5, sigma=2)
-
-fig = plt.figure(figsize=(9,12))
-fig.add_subplot(1,2,1)
-plt.imshow(test_img1)
-
-plt.show()
-
+# # imtest = np.random.normal(100,10, (250,250,3))
+#
+# R, G, B, test_img1 = general_color_constancy(im_rgb, gaussian_differentiation=1, minkowski_norm=5, sigma=2)
+#
+# fig = plt.figure(figsize=(9,12))
+# fig.add_subplot(1,2,1)
+# plt.imshow(im_rgb)
+#
+# fig.add_subplot(1,2,2)
+# plt.imshow(test_img1)
+#
+# plt.show()
+#
 
 
 

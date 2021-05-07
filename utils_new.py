@@ -150,8 +150,8 @@ class WhiteBalancer():
         assert im.dtype == np.float32
         assert random.choice(im.flat) >= 0.0
         assert random.choice(im.flat) <= 1.0
-        white_in = illum_est_mink(im, mink_norm=6)
         white_out = random.choice(self.whites)
+        white_in = illum_est_mink(im, mink_norm=6)
         return self.transform(im, white_in, white_out)[0]
 
 
