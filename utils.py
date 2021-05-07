@@ -24,6 +24,7 @@ import cv2
 from numba import jit
 import pickle
 import time
+import color_constancy as cc
 
 def illum_est_mink(input_data, mink_norm=6):  # almost same white estimation as DaisyLab
     assert mink_norm >= 1
@@ -146,13 +147,17 @@ class WhiteBalancer():
             white_out_actual = self.apply_M_flat(white_in[None], M).flatten()
             return np.clip(self.apply_M(im, M), 0, 1), white_out_actual
 
-    def random_wb(self, im):
+    def random_wb(self, image):
+        im = (np.array(image) / 255).astype(np.float32)
         assert im.dtype == np.float32
         assert random.choice(im.flat) >= 0.0
         assert random.choice(im.flat) <= 1.0
         white_in = illum_est_mink(im, mink_norm=6)
         white_out = random.choice(self.whites)
-        return self.transform(im, white_in, white_out)[0]
+        return Image.fromarray((self.transform(im, white_in, white_out)[0]*255).astype('uint8'),'RGB')
+    def __call__(self, img):
+        return self.random_wb(img)
+
 
 
 # Define ISIC Dataset Class
@@ -166,7 +171,7 @@ class ISICDataset(Dataset):
             indSet (string): Indicates train, val, test
         """
         # Mdlparams
-        self.wb = WhiteBalancer()
+
         self.mdlParams = mdlParams
         # Number of classes
         self.numClasses = mdlParams['numClasses']
@@ -357,8 +362,14 @@ class ISICDataset(Dataset):
                 all_transforms.append(transforms.RandomCrop(self.input_size))
             elif self.only_downsmaple:
                 all_transforms.append(transforms.Resize(self.input_size))
+
             else:
                 all_transforms.append(transforms.RandomResizedCrop(self.input_size[0],scale=(mdlParams.get('scale_min',0.08),1.0)))
+
+            if self.mdlParams['color_augmentation']:
+                all_transforms.append(WhiteBalancer())
+                all_transforms.append(cc.general_color_constancy(gaussian_differentiation=0,minkowski_norm=6,sigma=0))
+
             if mdlParams.get('flip_lr_ud',False):
                 all_transforms.append(transforms.RandomHorizontalFlip())
                 all_transforms.append(transforms.RandomVerticalFlip())
@@ -516,12 +527,6 @@ class ISICDataset(Dataset):
                 x_meta = np.squeeze(self.feature_scaler.transform(np.expand_dims(x_meta,0)))
         else:
             # Apply
-            if self.color_augment:
-                x = np.asarray(x).astype(np.float32)/255
-                x = self.wb.random_wb(x)*255
-                x = Image.fromarray(x.astype('uint8'),'RGB')
-
-
             x = self.composed(x)
             # meta augment
             if self.mdlParams.get('meta_features',None) is not None:

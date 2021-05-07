@@ -18,7 +18,7 @@ width = 600
 height = 450
 preserve_size = 600
 paths = [r'C:\Users\ptrkm\OneDrive\Dokumenter\Bachelor deep learning\Data ISIC\ISIC_2019_Test_Input\\']
-return_folder = r'C:\Users\ptrkm\OneDrive\Dokumenter\Bachelor deep learning\Data ISIC\ISIC_test_cropped\\'
+return_folder = r'C:\Users\ptrkm\Bachelor\2019 preproc without cc\official'
 # paths = [r'C:\Users\Bruger\OneDrive\DTU - General engineering\6. Semester\Bachelor\ISBI2016_ISIC_Part2B_Training_Data\TestRunImages\\']
 # return_folder = r'C:\Users\Bruger\OneDrive\DTU - General engineering\6. Semester\Bachelor\ISBI2016_ISIC_Part2B_Training_Data\TestRunImagesOutput\\'
 standard_size = np.asarray([height, width])
@@ -41,8 +41,8 @@ import shutil
 full_data = os.listdir(paths[0])
 cropped_data = os.listdir(return_folder)
 
-path1 = r'C:\Users\ptrkm\Bachelor\2018_test\ISIC2018_Task3_Test_Input'
-path2 = r'C:\Users\ptrkm\Bachelor\2018_test\cropped'
+path1 = r'C:\Users\ptrkm\OneDrive\Dokumenter\Bachelor deep learning\Data ISIC\ISIC_2019_Training_Input'
+path2 = r'C:\Users\ptrkm\Bachelor\2019 preproc without cc\official'
 original_folders = os.listdir(path1)
 return_folders = os.listdir(path2)
 
@@ -52,7 +52,7 @@ idx = 0
 # num_png = np.sum(['png' in i for i in list(cropped_data)])
 
 unused_data = list(set(original_folders) - set(return_folders))
-breakpoint()
+
 for i in unused_data:
     if 'txt' not in i:
         try:
@@ -74,8 +74,8 @@ for i in unused_data:
                         print("resize problem on image" + image)
                         errors.append(image)
                         continue
-        R, G, B, new_image = cc.general_color_constancy(image, 0, 6, 0)
-        new_image = np.uint8(new_image)
+        # R, G, B, new_image = cc.general_color_constancy(image, 0, 6, 0)
+        new_image = np.uint8(image)
 
         im = Image.fromarray(new_image).convert('RGB')
         im.save(os.path.join(path2,i))
@@ -110,8 +110,8 @@ for i, images in enumerate(os.listdir(path2)):
                                 print("resize problem on image" + images)
                                 errors.append(images)
                                 continue
-                R, G, B, new_image = cc.general_color_constancy(image, 0, 6, 0)
-                new_image = np.uint8(new_image)
+                # R, G, B, new_image = cc.general_color_constancy(image, 0, 6, 0)
+                new_image = np.uint8(image)
 
                 im = Image.fromarray(new_image).convert('RGB')
                 im.save(images)

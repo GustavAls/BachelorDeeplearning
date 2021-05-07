@@ -75,6 +75,7 @@ class data_visualiser:
         self.rr_list = []
         self.ss_list = []
         self.confusion_matrix_name = None
+        self.ground_frame = None
 
     def create_pkl_list(self, network_list):
         """
@@ -176,6 +177,169 @@ class data_visualiser:
                             'name': name}
 
 
+    def create_pkl_new(self, network_names = None, create_ensemble = True, path_to_files = None,prefix = None,
+                       format = '.jpg',create_test = False,name = None,num_classes = 8,average_voting=True):
+        """
+
+        :param network_names: Names of different networks in the ensemble
+        :param create_ensemble: If the function should return ensemble predictions or list of individual
+        :param path_to_files: path to evaluation pkl files
+        :return:
+        """
+        path = path_to_files
+        count = 0
+        image_dict = {}
+        for idx, networks in enumerate(network_names):
+            prediction_frame = pd.DataFrame()
+            image_list =[]
+            prediction_list = []
+            for pkls in os.listdir(path):
+                if networks in pkls:
+                    current_pcl = pickle.load(open(os.path.join(path,pkls),'rb'))
+                    for counter, img in enumerate(pd.unique(current_pcl['all_images'][0])):
+                        if format in img:
+                            image = img.removeprefix(prefix)
+                            image = image.removesuffix(format)
+                            image_list.append(image)
+                            prediction_list.append(current_pcl['extPred'][0][counter,:])
+                    prediction_frame['image'] = image_list
+
+                    for i in range(np.min([current_pcl['extPred'][0].shape[1],num_classes])):
+                        prediction_frame['class'+str(i)] = np.asarray(prediction_list)[:,i]
+                    prediction_frame.set_index('image',inplace=True)
+                    image_dict[networks] = prediction_frame.transpose()
+                    print(networks + 'Was included in the ensemble')
+
+
+        for idx, networks in enumerate(image_dict.keys()):
+            if average_voting:
+                if idx == 0:
+                    ground_frame = image_dict[networks]
+                    print("ground frame was set")
+
+                    image_list = ground_frame.columns.tolist()
+                else:
+                    for counter, images in enumerate(image_dict[networks].columns):
+                        extra_array = np.asarray(image_dict[networks][images])[:num_classes]
+                        index = image_list.index(images)
+                        ground_frame[ground_frame.columns[index]] = (np.asarray(ground_frame[ground_frame.columns[index]])+\
+                                                                    extra_array)/len(network_names)
+                print(networks + " was includeded in the average voting ensemble")
+            else:
+                if idx == 0:
+                    ground_frame = image_dict[networks]
+
+                    image_list = ground_frame.columns.tolist()
+                    for cols, vals in ground_frame.iteritems():
+                        ground_frame[cols] = [1.0 if i==np.argmax(vals) else 0.0 for i in range(len(vals))]
+                else:
+                    for counter, images in enumerate(image_dict[networks].columns):
+                        extra_array = np.asarray(image_dict[networks][images])[:num_classes]
+                        extra_array = np.asarray([1.0 if i == np.argmax(extra_array) else 0.0 for i,j in enumerate(extra_array)])
+                        index = image_list.index(images)
+                        ground_frame[ground_frame.columns[index]] = (np.asarray(ground_frame[ground_frame.columns[index]])+\
+                                                                    extra_array)
+
+        self.ground_frame = ground_frame
+
+        if not average_voting:
+            for cols, vals in self.ground_frame.iteritems():
+                self.ground_frame[cols] = [0.99 if i == np.argmax(vals) else 0.0 for i,j in enumerate(vals)]
+        if create_test:
+            self.ground_frame = self.ground_frame.transpose()
+            self.labels += ['UNK']
+            test_labels = []
+            for i in range(len(self.ground_frame.columns)):
+                test_labels.append(self.labels[i])
+            self.ground_frame.columns = test_labels
+            if '2018' in name and len(self.ground_frame.columns)>num_classes:
+                self.ground_frame.drop([self.ground_frame.columns[-1]],axis=1,inplace=True)
+            if '2019' in name:
+                self.ground_frame[self.labels[-1]] = [0.0 for i in range(len(self.ground_frame))]
+
+            self.ground_frame.to_csv(os.path.join(self.ground_path,name+'.csv'))
+
+
+
+    def evaluate_new(self,network_names = None, path_to_files = None,prefix = None,path_to_labels = None,name=None,
+                     format = '.jpg',average_voting = True):
+        """
+
+        :param network_names: Ensemble network names
+        :param path_to_files: path to evaluation pickles
+        :param prefix: path to the image on server
+        :param path_to_labels: full path to labels.csv file
+        :param average_voting: If average or majority voting should be used, False for majority
+        :return: A prediction dictionary, consisting of predictions, labels and name of ensemble
+
+        """
+        self.create_pkl_new(network_names=network_names,path_to_files=path_to_files,prefix=prefix,format=format,
+                            average_voting=average_voting)
+        labels = pd.read_csv(path_to_labels)
+        labels.set_index('image', inplace=True)
+        labels = labels.transpose()
+        final_predictions = pd.DataFrame()
+        image_list = self.ground_frame.columns.tolist()
+        for columns in labels.columns:
+            try:
+                final_predictions[columns] = self.ground_frame[columns]
+            except:
+                breakpoint()
+        final_predictions = final_predictions.transpose()
+        labels = labels.transpose()
+
+        self.pkl = {
+            'predictions': final_predictions.values,
+            'targets': labels.values,
+            'names': name
+        }
+
+    def evaluate_new_white(self, network_names = None, path_to_files = None, prefix = None, format = '.jpg',
+                           emulator=None,path_to_labels = None,name=None):
+
+        if emulator == 'knn':
+            end_list = ['_F_AS', '_F_CS', '_S_AS', '_S_CS',
+                               '_T_AS', '_T_CS', '_C_AS', '_C_CS',
+                               '_D_AS', '_D_CS']
+            end = '_original'
+        elif emulator == 'mohan':
+            end_list = [str(i) for i in range(6)]
+            end = ""
+
+        self.create_pkl_new(network_names=network_names,path_to_files=path_to_files,prefix=prefix, format=format)
+
+        labels = pd.read_csv(path_to_labels)
+        labels.set_index('image', inplace=True)
+        labels = labels.transpose()
+        final_predictions = pd.DataFrame()
+        image_list = self.ground_frame.columns.tolist()
+        predictions = []
+        n_classes = len(self.ground_frame)
+        for columns in labels.columns:
+            average_preds = []
+            for ends in end_list:
+                if columns+ends in image_list:
+                    average_preds.append(np.asarray(self.ground_frame[columns+ends]))
+            if columns + end in image_list:
+                average_preds.append(np.asarray(self.ground_frame[columns+end]))
+
+            if len(average_preds) != 6:
+                print('Something went horribly wrong here')
+
+            final_predictions[columns] = np.mean(np.asarray(average_preds),axis=0)
+
+        final_predictions = final_predictions.transpose()
+
+        labels = labels.transpose()
+        test = final_predictions.values
+
+        self.pkl = {
+            'predictions': final_predictions.values,
+            'targets': labels.values,
+            'names': name
+        }
+
+
     def create_pkl(self, network_names = None, create_ensemble = True, evaluation_set=None, already_created = None):
         """
         :param pkl_list:
@@ -233,7 +397,7 @@ class data_visualiser:
                     'names': network_names}
 
 
-    def score_metrics(self, confusion_plot_name = None):
+    def score_metrics(self, confusion_plot_name = None, show_plot = True):
         # calculates confusion matrix, weighted accuracy, accuracy and AUC for given pkl
         if confusion_plot_name is not None:
             self.confusion_matrix_name = confusion_plot_name
@@ -491,21 +655,50 @@ def ensembling(predictions_list,indices, labels, test_predictions = None, n_pred
 
 
 def main():
-    our_ensemble = ['res_101_rr', 'efficientnet_b5_rr', 'se_resnet101_rr', 'nasnetamobile_rr',
-                    'efficientnet_b6_ss', 'resnext_101_32_8_wsl_rr', 'dense_169_rr']
+    our_ensemble = ['res101_rr', 'efficientnet_b5_rr', 'se_resnet101_rr', 'nasnetamobile_rr',
+                    'efficientnet_b6_ss', 'resnext101_32_8_rr']
 
-    their_ensemble = ['efficientnet_b1_rr', 'efficientnet_b2_rr', 'efficientnet_b3_rr',
+    their_ensemble = ['efficientnet_b0_rr','efficientnet_b1_rr', 'efficientnet_b2_rr', 'efficientnet_b3_rr',
                       'efficientnet_b4_rr', 'efficientnet_b5_rr', 'efficientnet_b0_ss', 'efficientnet_b1_ss',
                       'efficientnet_b2_ss', 'efficientnet_b3_ss', 'efficientnet_b4_ss', 'efficientnet_b5_ss',
                       'efficientnet_b6_ss', 'senet154_ss']
 
+    test_res101 = ['res101']
+
     gustav_bunder = data_visualiser()
     # gustav_bunder.create_prediction_pkl(location= r'C:\Users\ptrkm\Bachelor\2018_test\eval_predictions_2018\2018_mixed.efficientnet_b4_rr_bestgpu2_90_predn.pkl',
     #                                     evaluation_set='AISC', )
-    gustav_bunder.create_pkl_list(network_list=their_ensemble)
-    gustav_bunder.create_pkl(already_created='their_ensemble')
+    # gustav_bunder.create_pkl_new(network_names=test_res101, path_to_files=r'C:\Users\ptrkm\Bachelor\Eval predictions\eval_predictions_ISIC_AISC_on_ISIC2019',
+    #                              prefix='/home/s184400/isic2019/ISIC_test_cropped/',create_test=True,name='2019_eval_trained_res',average_voting=True)
 
-    # gustav_bunder.create_predictixon_pkl(location='2019_rr.resnet101_rr_AISC_gpu0_58_predn.pkl')
+    gustav_bunder.evaluate_new(network_names=their_ensemble,path_to_files=r'C:\Users\ptrkm\Bachelor\Eval predictions\eval_predictions_2019_on_AISC',
+                               prefix='/home/s184400/isic2019/AISC_images/official/',path_to_labels=r'C:\Users\ptrkm\Bachelor\labels.csv',
+                               average_voting=True)
+    peter_bunder_ikke = data_visualiser()
+    peter_bunder_ikke.evaluate_new(network_names=our_ensemble,path_to_files=r'C:\Users\ptrkm\Bachelor\Eval predictions\eval_predictions_2019_on_AISC',
+                               prefix='/home/s184400/isic2019/AISC_images/official/',path_to_labels=r'C:\Users\ptrkm\Bachelor\labels.csv',
+                               average_voting=True)
+
+    # gustav_bunder.evaluate_new_white(network_names=test_res101,path_to_files=r'C:\Users\ptrkm\Bachelor\Eval predictions\eval_predictions_wb2',
+    #                                  prefix='/scratch/s184400/test_a/',emulator='mohan',path_to_labels=r'C:\Users\ptrkm\Bachelor\labels.csv')
+
+    # gustav_bunder.create_pkl(already_created='their_ensemble')
+
+
+    # gustav_bunder.create_predictixon_pkl(location='2019_rr.resnet101_rr_AISC_gpu0_58_predn.pkl')r'C:\Users\ptrkm\Bachelor\Eval predictions\eval_predictions_2019_on_AISC'
     gustav_bunder.score_metrics()
+    peter_bunder_ikke.score_metrics()
+    labels = pd.read_csv(r'C:\Users\ptrkm\Bachelor\labels.csv')
+
+
+    pcl = {'their_ensemble':gustav_bunder.pkl,
+           'our_ensemble':peter_bunder_ikke.pkl,
+           'ground_truth_AISC':labels}
+
+    with open(r'C:\Users\ptrkm\Bachelor\new_pickle_results.pkl','wb') as handle:
+        pickle.dump(pcl,handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+
     breakpoint()
 main()
