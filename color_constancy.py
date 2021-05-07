@@ -190,63 +190,67 @@ class general_color_constancy:
         if self.mask_image == 0:
             mask_image = np.zeros((y_height, x_height))
 
-    #Removing saturated points
-    saturation_threshold = 255
+        #Removing saturated points
+        saturation_threshold = 255
 
-    mask_image2 = mask_image + (dilation33(np.max(image, axis=2)) >= saturation_threshold)
-    mask_image2 = (mask_image2 == 0)
+        mask_image2 = mask_image + (dilation33(np.max(image, axis=2)) >= saturation_threshold)
+        mask_image2 = (mask_image2 == 0)
 
-    mask_image2 = set_border(mask_image2, sigma + 1)
+        mask_image2 = set_border(mask_image2, self.sigma + 1)
 
-    image_copy = np.ndarray.copy(image).astype(int)
+        image_copy = np.ndarray.copy(image).astype(int)
 
-    if gaussian_differentiation == 0:
-        if sigma != 0:
-            image_copy = gaussian_derivative(image_copy, sigma, 0, 0)
-    elif gaussian_differentiation > 0:
-        Rx, Gx, Bx = norm_derivative(image_copy, sigma, gaussian_differentiation, build_ind=False)
-        image_copy[:, :, 0] = Rx
-        image_copy[:, :, 1] = Gx
-        image_copy[:, :, 2] = Bx
+        if self.gaussian_differentiation == 0:
+            if self.sigma != 0:
+                image_copy = gaussian_derivative(image_copy, self.sigma, 0, 0)
+        elif self.gaussian_differentiation > 0:
+            Rx, Gx, Bx = norm_derivative(image_copy, self.sigma, self.gaussian_differentiation, build_ind=False)
+            image_copy[:, :, 0] = Rx
+            image_copy[:, :, 1] = Gx
+            image_copy[:, :, 2] = Bx
 
-    image = np.fabs(image)
+        image = np.fabs(image)
 
-    if minkowski_norm != -1: #Minkowski norm = (1, infinity [
-        kleur = np.float_power(image_copy, minkowski_norm)
-        white_R = np.float_power(np.sum(kleur[:, :, 0] * mask_image2), (1/minkowski_norm))
-        white_G = np.float_power(np.sum(kleur[:, :, 1] * mask_image2), (1/minkowski_norm))
-        white_B = np.float_power(np.sum(kleur[:, :, 2] * mask_image2), (1/minkowski_norm))
+        if self.minkowski_norm != -1: #Minkowski norm = (1, infinity [
+            kleur = np.float_power(image_copy, self.minkowski_norm)
+            white_R = np.float_power(np.sum(kleur[:, :, 0] * mask_image2), (1/self.minkowski_norm))
+            white_G = np.float_power(np.sum(kleur[:, :, 1] * mask_image2), (1/self.minkowski_norm))
+            white_B = np.float_power(np.sum(kleur[:, :, 2] * mask_image2), (1/self.minkowski_norm))
 
-        som = np.sqrt(white_R ** 2.0 + white_G ** 2.0 + white_B ** 2.0)
+            som = np.sqrt(white_R ** 2.0 + white_G ** 2.0 + white_B ** 2.0)
 
-        white_R = white_R / som
-        white_G = white_G / som
-        white_B = white_B / som
+            white_R = white_R / som
+            white_G = white_G / som
+            white_B = white_B / som
 
-    else: #Minkowski norm is infinite, hence the max algorithm is applied
-        R = image_copy[:, :, 0]
-        G = image_copy[:, :, 1]
-        B = image_copy[:, :, 2]
+        else: #Minkowski norm is infinite, hence the max algorithm is applied
+            R = image_copy[:, :, 0]
+            G = image_copy[:, :, 1]
+            B = image_copy[:, :, 2]
 
-        white_R = np.max(R * mask_image2)
-        white_G = np.max(G * mask_image2)
-        white_B = np.max(B * mask_image2)
+            white_R = np.max(R * mask_image2)
+            white_G = np.max(G * mask_image2)
+            white_B = np.max(B * mask_image2)
 
-        som = np.sqrt(white_R ** 2 + white_G ** 2 + white_B ** 2)
+            som = np.sqrt(white_R ** 2 + white_G ** 2 + white_B ** 2)
 
-        white_R = white_R / som
-        white_G = white_G / som
-        white_B = white_B / som
+            white_R = white_R / som
+            white_G = white_G / som
+            white_B = white_B / som
 
-    out_image = np.ndarray.copy(image).astype(int)
-    out_image[:, :, 0] = image[:, :, 0] / (white_R * np.sqrt(3.0))
-    out_image[:, :, 1] = image[:, :, 1] / (white_G * np.sqrt(3.0))
-    out_image[:, :, 2] = image[:, :, 2] / (white_B * np.sqrt(3.0))
+        out_image = np.ndarray.copy(image).astype(int)
+        out_image[:, :, 0] = image[:, :, 0] / (white_R * np.sqrt(3.0))
+        out_image[:, :, 1] = image[:, :, 1] / (white_G * np.sqrt(3.0))
+        out_image[:, :, 2] = image[:, :, 2] / (white_B * np.sqrt(3.0))
 
-    #Makes sure there is no overflow
-    out_image[out_image >= 255] = 255
+        #Makes sure there is no overflow
+        out_image[out_image >= 255] = 255
+        # print("data type of output was {}".format(out_image.dtype))
 
-    return white_R, white_G, white_B, out_image
+        return Image.fromarray(out_image.astype('uint8'))
+
+    def __call__(self,img):
+        return self.color_augment(image=img)
 #
 # test_img = cv2.imread(r'C:\Users\Bruger\Pictures\building1.jpg', 1)
 # # test_img = cv2.imread(r'C:\Users\ptrkm\OneDrive\Dokumenter\TestFolder\ISIC_0000001.jpg', 1)
@@ -264,7 +268,3 @@ class general_color_constancy:
 #
 # plt.show()
 #
-
-
-
-
