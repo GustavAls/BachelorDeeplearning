@@ -39,7 +39,7 @@ def main():
     model_cfg = importlib.import_module('cfgs.' + sys.argv[2])
     mdlParams_model = model_cfg.init(mdlParams)
 
-    if 'wb2' in sys.argv[2]:
+    if 'cc_late' in sys.argv[2]:
         mdlParams['color_augmentation'] = True
     else:
         mdlParams['color_augmentation'] = False
@@ -105,7 +105,7 @@ def main():
         # Check if this fold was already trained
         already_trained = False
         if 'valIndCV' in mdlParams:
-            mdlParams['saveDir'] = mdlParams['saveDirBase'] + '/CVSet' + str(cv)
+            mdlParams['saveDir'] = mdlParams['saveDirBase'] + '/CVSet' + str(cv) + str(cuda_str)
             # mdlParams['saveDir'] = mdlParams['saveDirBase'] + '\CVSet' + str(cv)
             if os.path.isdir(mdlParams['saveDirBase']):
                 if os.path.isdir(mdlParams['saveDir']):
@@ -138,7 +138,7 @@ def main():
             mdlParams['valInd'] = mdlParams['valIndCV']
         # Def current path for saving stuff
         if 'valIndCV' in mdlParams:
-            mdlParams['saveDir'] = mdlParams['saveDirBase'] + '/CVSet' + str(cv)
+            mdlParams['saveDir'] = mdlParams['saveDirBase'] + '/CVSet' + str(cv) + str(cuda_str)
             # mdlParams['saveDir'] = mdlParams['saveDirBase'] + '\CVSet' + str(cv)
         else:
             mdlParams['saveDir'] = mdlParams['saveDirBase']
@@ -233,7 +233,7 @@ def main():
         # Load trained model
         if mdlParams.get('meta_features', None) is not None:
             # Find best checkpoint
-            files = glob(mdlParams['model_load_path'] + '/CVSet' + str(cv) + '/*')
+            files = glob(mdlParams['model_load_path'] + '/CVSet' + str(cv) + str(cuda_str)+ '/*')
             # files = glob(mdlParams['model_load_path'] + '\CVSet' + str(cv) + '\*')
             global_steps = np.zeros([len(files)])
             # print("files",files)

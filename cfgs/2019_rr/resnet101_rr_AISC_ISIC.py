@@ -188,14 +188,13 @@ def init(mdlParams_):
                                 exclude_list.append(indices_exclude[key])
     # Convert label list to array
     mdlParams['labels_array'] = np.array(mdlParams['labels_list'])
-    print(np.mean(mdlParams['labels_array'],axis=0))
+    # print(np.mean(mdlParams['labels_array'],axis=0))
 
     ### Define Indices ###
     # Just divide into 5 equally large sets
     with open(mdlParams['saveDir'] + 'indices_aisc_plus_isic.pkl','rb') as f:
         indices = pickle.load(f)
     mdlParams['trainIndCV'] = indices['trainIndCV']
-    print(len(mdlParams['trainIndCV'][0]))
     mdlParams['valIndCV'] = indices['valIndCV']
     if mdlParams['exclude_inds']:
         exclude_list = np.array(exclude_list)

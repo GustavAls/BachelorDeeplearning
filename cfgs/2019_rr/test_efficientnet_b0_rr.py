@@ -45,7 +45,7 @@ def init(mdlParams_):
     mdlParams['multiCropEval'] = mdlParams['numCropPositions']*len(mdlParams['cropScales'])*mdlParams['cropFlipping']
     mdlParams['offset_crop'] = 0.2
     # Scale up for b1-b7
-    mdlParams['input_size'] = [224,224,3]
+    mdlParams['input_size'] = [224, 224, 3]
 
     ### Training Parameters ###
     # Batch size
@@ -228,10 +228,10 @@ def init(mdlParams_):
 
     ### Define Indices ###
     # Just divide into 5 equally large sets
-    with open(mdlParams['saveDir'] + 'indices_isic2019.pkl','rb') as f:
+    with open(mdlParams['saveDir'] + 'indices_isic2019_all_data.pkl','rb') as f:
         indices = pickle.load(f)
     mdlParams['trainIndCV'] = indices['trainIndCV']
-    # mdlParams['valIndCV'] = indices['valIndCV']
+    mdlParams['valIndCV'] = indices['valIndCV']
     if mdlParams['exclude_inds']:
         exclude_list = np.array(exclude_list)
         all_inds = np.arange(len(mdlParams['im_paths']))

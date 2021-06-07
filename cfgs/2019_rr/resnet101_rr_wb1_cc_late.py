@@ -11,11 +11,10 @@ import imagesize
 
 def init(mdlParams_):
     mdlParams = {}
-    local_path = '/isic2019/'
-    # local_path = '\isic2019\\'
+
     mdlParams['saveDir'] = mdlParams_['pathBase']+'/'
     # Data is loaded from here
-    mdlParams['dataDir'] = mdlParams_['pathBase']+local_path
+    mdlParams['dataDir'] = '/scratch/s184400/'
 
     ### Model Selection ###
     mdlParams['model_type'] = 'Resnet101'
@@ -30,7 +29,7 @@ def init(mdlParams_):
     mdlParams['classification'] = True
     mdlParams['balance_classes'] = 9
     mdlParams['extra_fac'] = 1.0
-    mdlParams['numClasses'] = 9
+    mdlParams['numClasses'] = 8
     mdlParams['no_c9_eval'] = True
     mdlParams['numOut'] = mdlParams['numClasses']
     mdlParams['numCV'] = 1
@@ -137,7 +136,7 @@ def init(mdlParams_):
     mdlParams['im_paths'] = []
     mdlParams['labels_list'] = []
     # Define the sets
-    path1 = mdlParams['dataDir'] + '/images/'
+    path1 = mdlParams['dataDir'] + '/'
     # All sets
     allSets = sorted(glob(path1 + '*/'))
     # Ids which name the folders
@@ -189,27 +188,12 @@ def init(mdlParams_):
     print(np.mean(mdlParams['labels_array'],axis=0))
     # Create indices list with HAM10000 only
     mdlParams['HAM10000_inds'] = []
-    HAM_START = 24306
-    HAM_END = 34320
-    for j in range(len(mdlParams['key_list'])):
-        try:
-            curr_id = [int(s) for s in re.findall(r'\d+',mdlParams['key_list'][j])][-1]
-        except:
-            continue
-        if curr_id >= HAM_START and curr_id <= HAM_END:
-            mdlParams['HAM10000_inds'].append(j)
-    mdlParams['HAM10000_inds'] = np.array(mdlParams['HAM10000_inds'])
-    print("Len ham",len(mdlParams['HAM10000_inds']))
     # Perhaps preload images
     if mdlParams['preload']:
         mdlParams['images_array'] = np.zeros([len(mdlParams['im_paths']),mdlParams['input_size_load'][0],mdlParams['input_size_load'][1],mdlParams['input_size_load'][2]],dtype=np.uint8)
         for i in range(len(mdlParams['im_paths'])):
             x = scipy.ndimage.imread(mdlParams['im_paths'][i])
-            #x = x.astype(np.float32)
-            # Scale to 0-1
-            #min_x = np.min(x)
-            #max_x = np.max(x)
-            #x = (x-min_x)/(max_x-min_x)
+
             mdlParams['images_array'][i,:,:,:] = x
             if i%1000 == 0:
                 print(i+1,"images loaded...")
@@ -228,7 +212,7 @@ def init(mdlParams_):
 
     ### Define Indices ###
     # Just divide into 5 equally large sets
-    with open(mdlParams['saveDir'] + 'indices_isic2019_one_cv.pkl','rb') as f:
+    with open(mdlParams['saveDir'] + 'indices_color_augmentation.pkl','rb') as f:
         indices = pickle.load(f)
     mdlParams['trainIndCV'] = indices['trainIndCV']
     mdlParams['valIndCV'] = indices['valIndCV']

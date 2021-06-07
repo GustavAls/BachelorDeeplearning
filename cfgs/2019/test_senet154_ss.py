@@ -233,7 +233,7 @@ def init(mdlParams_):
                 print(i + 1, "images processed for mean...")
 
     ### Define Indices ###
-    with open(mdlParams['saveDir'] + 'indices_isic2019.pkl', 'rb') as f:
+    with open(mdlParams['saveDir'] + 'indices_isic2019_all_data.pkl', 'rb') as f:
         indices = pickle.load(f)
     mdlParams['trainIndCV'] = indices['trainIndCV']
     mdlParams['valIndCV'] = indices['valIndCV']

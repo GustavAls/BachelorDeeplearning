@@ -27,32 +27,77 @@ import imagesize
 
 # add configuration file
 # Dictionary for model configuration
-network_list_eff = ['efficientnet_b0_rr', 'efficientnet_b1_rr','efficientnet_b2_rr',
-                    'efficientnet_b3_rr', 'efficientnet_b4_rr','efficientnet_b5_rr', 'efficientnet_b0_ss_autoaugment', 'res101_rr','se_resnet101_rr',
-                    'nasnetamobile_rr','resnext101_32_8_wsl_rr','efficientnet_b1_ss','efficientnet_b2_ss',
-                    'efficientnet_b3_ss','efficientnet_b4_ss','efficientnet_b5_ss','efficientnet_b6_ss','senet154_ss']
 
-if sys.argv[2] == 'original':
-    network_list_eff = ['2019_rr.test_' + i if 'rr' in i else '2019.test_' + i for i in network_list_eff]
-elif sys.argv[2] == 'res101_aisc':
-    network_list_eff = ['2019_rr.resnet101_rr_AISC']
-elif sys.argv[2] == 'wb1':
-    network_list_eff = ['2019_rr.resnet101_rr_color_augment']
-elif sys.argv[2] == 'wb2':
-    network_list_eff = ['2019_rr.resnet101_rr_wb']
-elif sys.argv[2] == '2019_mixed':
+if sys.argv[2] == 'original_rr':
+    network_list_eff = ['efficientnet_b0_rr', 'efficientnet_b1_rr', 'efficientnet_b2_rr',
+                        'efficientnet_b3_rr', 'efficientnet_b4_rr', 'efficientnet_b5_rr', 'res101_rr',
+                        'se_resnet101_rr', 'nasnetamobile_rr', 'resnext101_32_8_wsl_rr']
+    network_list_eff = ['2019_rr.test_' + i for i in network_list_eff]
+
+elif sys.argv[2] == 'original_ss':
+    network_list_eff = ['efficientnet_b0_ss_autoaugment', 'efficientnet_b1_ss', 'efficientnet_b2_ss',
+                        'efficientnet_b3_ss', 'efficientnet_b4_ss', 'efficientnet_b5_ss', 'efficientnet_b6_ss',
+                        'senet154_ss']
+    network_list_eff = ['2019.test_' + i for i in network_list_eff]
+
+elif sys.argv[2] == '2019_daisy_rr':
     network_list_eff = ['efficientnet_b0_rr','efficientnet_b1_rr','efficientnet_b2_rr',
-                    'efficientnet_b3_rr', 'efficientnet_b4_rr','efficientnet_b5_rr', 'resnet101_rr', 'se_resnet101_rr',
-                        'nasnetamobile_rr', 'resnext101_32_8_rr', 'efficientnet_b0_ss','efficientnet_b1_ss', 'efficientnet_b2_ss',
-                        'efficientnet_b3_ss', 'efficientnet_b4_ss', 'efficientnet_b5_ss', 'efficientnet_b6_ss']
-    network_list_eff = ['2019_mixed.' + i for i in network_list_eff]
-elif sys.argv[2] == 'aisc_isic_on_2019':
-    network_list_eff = ['2019_rr.resnet101_rr_AISC_ISIC_pt2']
-elif sys.argv[2] == '2019_mixed_all_but_missing':
-    network_list_eff = ['senet154_ss']
-    network_list_eff = ['2019_mixed.' + i for i in network_list_eff]
+                    'efficientnet_b3_rr', 'efficientnet_b4_rr','efficientnet_b5_rr' ]
+    network_list_eff = ['2019_daisy.' + i for i in network_list_eff]
 
+elif sys.argv[2] == '2019_daisy_ss':
+    network_list_eff = ['2019_daisy.senet154_ss']
 
+elif sys.argv[2] == 'wb1_late_cc':
+    network_list_eff = ['2019_rr.resnet101_rr_wb1_cc_late']
+
+elif sys.argv[2] == 'wb2':
+    network_list_eff = ['2019_rr.resnet101_rr_wb2_no_cc']
+
+elif sys.argv[2] == '2018_mixed_aisc_val':
+    network_list_eff = ['efficientnet_b0_rr', 'efficientnet_b1_rr', 'efficientnet_b2_rr',
+                        'efficientnet_b3_rr', 'efficientnet_b4_rr', 'efficientnet_b5_rr',
+                        'resnet101_rr','se_resnet101_rr', 'nasnetamobile_rr', 'resnext101_32_8_rr','efficientnet_b0_ss',
+                        'efficientnet_b1_ss', 'efficientnet_b2_ss',
+                        'efficientnet_b3_ss', 'efficientnet_b4_ss', 'efficientnet_b5_ss', 'efficientnet_b6_ss',
+                        'senet154_ss']
+    network_list_eff = ['2018_mixed.' + i for i in network_list_eff]
+
+elif sys.argv[2] == '2019_daisy_on_2018':
+    network_list_eff = ['efficientnet_b0_rr', 'efficientnet_b1_rr', 'efficientnet_b2_rr',
+                        'efficientnet_b3_rr', 'efficientnet_b4_rr', 'efficientnet_b5_rr','efficientnet_b0_ss',
+                        'efficientnet_b1_ss', 'efficientnet_b2_ss',
+                        'efficientnet_b3_ss', 'efficientnet_b4_ss', 'efficientnet_b5_ss', 'efficientnet_b6_ss',
+                        'senet154_ss']
+    network_list_eff = ['2019_daisy.' + i for i in network_list_eff]
+
+elif sys.argv[2] == 'original_ss':
+    network_list_eff = ['efficientnet_b0_ss_autoaugment', 'efficientnet_b1_ss', 'efficientnet_b2_ss',
+                        'efficientnet_b3_ss', 'efficientnet_b4_ss', 'efficientnet_b5_ss', 'efficientnet_b6_ss',
+                        'senet154_ss']
+    network_list_eff = ['2019.test_' + i for i in network_list_eff]
+
+elif sys.argv[2] == '2019daisy_effb6':
+    network_list_eff = ['2019_daisy.efficientnet_b6_ss']
+
+elif sys.argv[2] == 'original_effb6':
+    network_list_eff = ['2019.test_efficientnet_b6_ss']
+
+elif sys.argv[2] == '2019effs':
+    network_list_eff = ['efficientnet_b3_ss', 'efficientnet_b4_rr',
+                         'efficientnet_b4_ss', 'efficientnet_b5_rr_CVSet0', 'efficientnet_b5_rr_CVSet1', 'efficientnet_b5_rr_CVSet2',
+                        'efficientnet_b5_ss_CVSet0', 'efficientnet_b5_ss_CVSet1', 'efficientnet_b5_ss_CVSet2',
+                        'efficientnet_b6_ss_CVSet0', 'efficientnet_b6_ss_CVSet1', 'efficientnet_b6_ss_CVSet2']
+    network_list_eff = ['2019_effs_daisy.' + i for i in network_list_eff]
+
+elif sys.argv[2] == '2019_aisc_full':
+    network_list_eff = ['efficientnet_b3_ss', 'efficientnet_b4_rr',
+                         'efficientnet_b4_ss', 'efficientnet_b4_rr','efficientnet_b5_ss',
+                         'efficientnet_b5_rr','efficientnet_b6_ss']
+    network_list_eff = ['2019_aisc_full.' + i for i in network_list_eff]
+
+elif sys.argv[2] == '2019_aisc_full_b3_rr':
+    network_list_eff = ['2019_aisc_full.efficientnet_b3_rr']
 
 network_list = network_list_eff
 mdlParams = {}
@@ -67,6 +112,7 @@ for networks_peter in network_list:
         crop_strategy = 'multideterm1sc4f4'
     else:
         crop_strategy = 'multiorder36'
+        print("Crop strategy: " + str(crop_strategy))
     # If there is another argument, its which checkpoint should be used
     if len(sys.argv) > 6:
         if 'last' in sys.argv[6]:
@@ -133,6 +179,7 @@ for networks_peter in network_list:
             mdlParams['offset_crop'] = 0.2
         elif 'order' in crop_strategy:
             mdlParams['orderedCrop'] = True
+            mdlParams['var_im_size'] = True
             if mdlParams.get('var_im_size', True):
                 # Crop positions, always choose multiCropEval to be 4, 9, 16, 25, etc.
                 mdlParams['cropPositions'] = np.zeros([len(mdlParams['im_paths']), mdlParams['multiCropEval'], 2],

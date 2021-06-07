@@ -228,7 +228,7 @@ def init(mdlParams_):
 
     ### Define Indices ###
     # Just divide into 5 equally large sets
-    with open(mdlParams['saveDir'] + 'indices_isic2019.pkl','rb') as f:
+    with open(mdlParams['saveDir'] + 'indices_isic2019_all_data.pkl','rb') as f:
         indices = pickle.load(f)
     mdlParams['trainIndCV'] = indices['trainIndCV']
     mdlParams['valIndCV'] = indices['valIndCV']

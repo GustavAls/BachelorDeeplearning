@@ -249,8 +249,12 @@ class general_color_constancy:
 
         return Image.fromarray(out_image.astype('uint8'))
 
+
+
     def __call__(self,img):
         return self.color_augment(image=img)
+
+
 #
 # test_img = cv2.imread(r'C:\Users\Bruger\Pictures\building1.jpg', 1)
 # # test_img = cv2.imread(r'C:\Users\ptrkm\OneDrive\Dokumenter\TestFolder\ISIC_0000001.jpg', 1)

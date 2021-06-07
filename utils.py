@@ -197,8 +197,7 @@ class ISICDataset(Dataset):
         self.setMean = mdlParams['setMean'].astype(np.float32)
         # Current indSet = 'trainInd'/'valInd'/'testInd'
         self.color_augment = mdlParams['color_augmentation']
-        if self.color_augment:
-            print("applied mohan color augmentation")
+
         self.indices = mdlParams[indSet]
         self.indSet = indSet
         # feature scaling for meta
@@ -359,17 +358,21 @@ class ISICDataset(Dataset):
             all_transforms = []
             # Normal train proc
             if self.same_sized_crop:
-                all_transforms.append(transforms.RandomCrop(self.input_size))
+                all_transforms.append(transforms.RandomCrop(self.input_size, padding_mode='reflect', pad_if_needed=True))
             elif self.only_downsmaple:
                 all_transforms.append(transforms.Resize(self.input_size))
 
             else:
                 all_transforms.append(transforms.RandomResizedCrop(self.input_size[0],scale=(mdlParams.get('scale_min',0.08),1.0)))
 
-            if self.mdlParams['color_augmentation']:
-                all_transforms.append(WhiteBalancer())
-                all_transforms.append(cc.general_color_constancy(gaussian_differentiation=0,minkowski_norm=6,sigma=0))
-
+            #Handling late color constancy and applying white balancing
+            #Mohan algorithm applied
+            # if self.mdlParams['color_augmentation'] and self.mdlParams['training_steps'] == 300:
+            #     all_transforms.append(WhiteBalancer())
+            #     all_transforms.append(cc.general_color_constancy(gaussian_differentiation=0,minkowski_norm=6,sigma=0))
+            # #Only apply color constancy, White balancing is done globally
+            # elif self.mdlParams['color_augmentation']:
+            #     all_transforms.append(cc.general_color_constancy(gaussian_differentiation=0, minkowski_norm=6, sigma = 0))
             if mdlParams.get('flip_lr_ud',False):
                 all_transforms.append(transforms.RandomHorizontalFlip())
                 all_transforms.append(transforms.RandomVerticalFlip())
