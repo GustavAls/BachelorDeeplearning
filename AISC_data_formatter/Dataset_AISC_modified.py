@@ -133,6 +133,9 @@ class AISCDataset(torch.utils.data.Dataset):
         label = self.labels[image_name]
 
         return label, image_name
+all = AISCDataset(mode='all',data_path =r'C:\Users\ptrkm\Bachelor\Odense_Data',new_ext='')
+print(len(all.images))
+breakpoint()
 
 validation= AISCDataset(mode = 'val',data_path=r'C:\Users\ptrkm\Bachelor\Odense_Data',new_ext='')
 training = AISCDataset(mode = 'train',data_path=r'C:\Users\ptrkm\Bachelor\Odense_Data',new_ext='')

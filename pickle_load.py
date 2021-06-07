@@ -13,9 +13,63 @@ os.chdir(r'C:\Users\ptrkm\Bachelor')
 # breakpoint()
 
 #
+pcl = pickle.load(open(r'C:\Users\ptrkm\Bachelor\new_pickle_results.pkl','rb'))
 
-pcl = pickle.load(open(r'indices_aisc_plus_isic.pkl', "rb"))
-labels = pd.read_csv(r'labels_aisc_isic.csv')
+breakpoint()
+
+
+
+
+pcl = pickle.load(open(r'2019_rr.test_res101_rr_bestgpu1_130_predn.pkl', "rb"))
+labels = pd.read_csv(r'labels.csv')
+predictions = []
+labels_new = np.zeros(pcl['extPred'][0].shape)
+labels_list = list(labels['image'])
+labels_frame = labels.drop(['image'],axis=1).values
+pcl['all_images'][0] = pd.unique(pcl['all_images'][0])
+preds_new = []
+labels_new = []
+for idx,ims in enumerate(pcl['all_images'][0]):
+    if '.jpeg' not in ims:
+        image = ims.removesuffix('.jpg')
+        image = image.removeprefix('/home/s184400/isic2019/AISC_images/official/')
+        labels_new.append(labels_frame[labels_list.index(image)])
+        preds_new.append(pcl['extPred'][0][idx])
+
+    # else:
+    #     image = ims.removesuffix('.jpeg')
+    #     image = image.removeprefix('/home/s184400/isic2019/AISC_images/official/')
+    #     labels_new[idx] = labels_frame[labels_list.index(image)]
+
+print(metric.accuracy_score(np.argmax(np.array(labels_new),axis=1),np.argmax(np.array(preds_new),axis=1)))
+print(metric.balanced_accuracy_score(np.argmax(np.array(labels_new),axis=1),np.argmax(np.array(preds_new),axis=1)))
+print(metric.confusion_matrix(np.argmax(np.array(labels_new),axis=1),np.argmax(np.array(preds_new),axis=1)))
+
+breakpoint()
+
+print(metric.accuracy_score(np.argmax(labels_new,axis=1),np.argmax(pcl['extPred'][0],axis=1)))
+print(metric.balanced_accuracy_score(np.argmax(labels_new,axis=1),np.argmax(pcl['extPred'][0],axis=1)))
+
+
+breakpoint()
+
+training_inds = pcl['trainIndCV'].tolist()
+val_inds = pcl['valIndCV'].tolist()
+training_inds = []
+for i in range(len(labels)):
+    if i not in val_inds:
+        training_inds.append(i)
+training_inds = np.array(training_inds)
+val_inds = np.array(val_inds)
+
+pcl['trainIndCV'] = training_inds
+pcl['valIndCV'] = val_inds
+
+with open('indices_aisc_plus_isic.pkl','wb') as handle:
+    pickle.dump(pcl, handle, protocol=pickle.HIGHEST_PROTOCOL)
+breakpoint()
+
+
 
 aisc_training = []
 aisc_test =[]

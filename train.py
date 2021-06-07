@@ -43,6 +43,7 @@ def main():
 
     # Indicate training
     mdlParams['trainSetState'] = 'train'
+    mdlParams['color_augmentation'] = False
 
     # Path name from filename
     mdlParams['saveDirBase'] = mdlParams['saveDir'] + sys.argv[2]
@@ -407,7 +408,7 @@ def main():
             if step >= mdlParams['lowerLRat'] - mdlParams['lowerLRAfter']:
                 modelVars['scheduler'].step()
             modelVars['model'].train()
-            for j, (inputs, labels, indices) in enumerate(modelVars['dataloader_trainInd']):
+            for j, (inputs, labels, indices, _) in enumerate(modelVars['dataloader_trainInd']):
                 # Run optimization
                 if mdlParams.get('meta_features', None) is not None:
                     inputs[0] = inputs[0].cuda()
@@ -438,7 +439,7 @@ def main():
                     # Adjust model state
                     modelVars['model'].eval()
                     # Get metrics
-                    loss, accuracy, sensitivity, specificity, conf_matrix, f1, auc, waccuracy, predictions, targets, _ = utils.getErrClassification_mgpu(
+                    loss, accuracy, sensitivity, specificity, conf_matrix, f1, auc, waccuracy, predictions, targets, _, _ = utils.getErrClassification_mgpu(
                         mdlParams, eval_set, modelVars)
                     # Save in mat
                     save_dict['loss'].append(loss)
@@ -521,13 +522,13 @@ def main():
                     print(conf_matrix)
                     # Potentially peek at test error
                     if mdlParams['peak_at_testerr']:
-                        loss, accuracy, sensitivity, specificity, _, f1, _, _, _, _, _ = utils.getErrClassification_mgpu(
+                        loss, accuracy, sensitivity, specificity, _, f1, _, _, _, _, _, _ = utils.getErrClassification_mgpu(
                             mdlParams, 'testInd', modelVars)
                         print("Test loss: ", loss, " Accuracy: ", accuracy, " F1: ", f1)
                         print("Sensitivity: ", sensitivity, "Specificity", specificity)
                     # Potentially print train err
                     if mdlParams['print_trainerr'] and 'train' not in eval_set:
-                        loss, accuracy, sensitivity, specificity, conf_matrix, f1, auc, waccuracy, predictions, targets, _ = utils.getErrClassification_mgpu(
+                        loss, accuracy, sensitivity, specificity, conf_matrix, f1, auc, waccuracy, predictions, targets, _, _ = utils.getErrClassification_mgpu(
                             mdlParams, 'trainInd', modelVars)
                         # Save in mat
                         save_dict_train['loss'].append(loss)

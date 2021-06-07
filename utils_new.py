@@ -150,8 +150,8 @@ class WhiteBalancer():
         assert im.dtype == np.float32
         assert random.choice(im.flat) >= 0.0
         assert random.choice(im.flat) <= 1.0
-        white_in = illum_est_mink(im, mink_norm=6)
         white_out = random.choice(self.whites)
+        white_in = illum_est_mink(im, mink_norm=6)
         return self.transform(im, white_in, white_out)[0]
 
 
@@ -816,11 +816,18 @@ def getErrClassification_mgpu(mdlParams, indices, modelVars, exclude_class=None)
             predictions = np.zeros([len(mdlParams[indices]),mdlParams['numClasses']])
             targets = np.zeros([len(mdlParams[indices]),mdlParams['numClasses']])
             loss_mc = np.zeros([len(mdlParams[indices])])
-
+            image_list = []
             predictions_mc = np.zeros([len(mdlParams[indices]),mdlParams['numClasses'],mdlParams['numRandValSeq']])
             targets_mc = np.zeros([len(mdlParams[indices]),mdlParams['numClasses'],mdlParams['numRandValSeq']])
-            for i, (inputs, labels, inds) in enumerate(modelVars['dataloader_'+indices]):
+            for i, (inputs, labels, inds, paths) in enumerate(modelVars['dataloader_'+indices]):
                 # Get data
+                if type(paths) is list:
+                    image_list+=paths
+                elif type(paths) is str:
+                    image_list+= [paths]
+                elif type(paths) is np.ndarray:
+                    image_list+= paths.tolist()
+
                 if mdlParams.get('meta_features',None) is not None:
                     inputs[0] = inputs[0].cuda()
                     inputs[1] = inputs[1].cuda()
@@ -954,7 +961,7 @@ def getErrClassification_mgpu(mdlParams, indices, modelVars, exclude_class=None)
     for i in range(num_classes):
         fpr[i], tpr[i], _ = roc_curve(targets[:, i], predictions[:, i])
         roc_auc[i] = auc(fpr[i], tpr[i])
-    return np.mean(loss_all), acc, sensitivity, specificity, conf, f1, roc_auc, wacc, predictions, targets, predictions_mc
+    return np.mean(loss_all), acc, sensitivity, specificity, conf, f1, roc_auc, wacc, predictions, targets, predictions_mc, image_list
 
 
 def modify_densenet_avg_pool(model):

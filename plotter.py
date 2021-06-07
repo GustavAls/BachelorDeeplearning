@@ -10,8 +10,6 @@ val = mat4py.loadmat(directory + 'res101_val_progression.mat')
 wacc_train = np.mean(train['wacc'], axis=1)
 wacc_val = np.mean(val['wacc'], axis=1)
 
-breakpoint()
-
 loss_train = train['loss']
 loss_val = val['loss']
 
@@ -30,10 +28,10 @@ fig1.savefig(r'C:\Users\Bruger\OneDrive\DTU - General engineering\6. Semester\Ba
 #Plotting weighted accuracy
 fig2 = plt.figure()
 plt.grid(color='black', linestyle='-', linewidth=0.1)
-plt.plot(epochs, wacc_train, '--', label='WACC on training set')
-plt.plot(epochs, wacc_val, '--', label='WACC on validation set')
-plt.title('Weighted accuracy for a ResNet101 with random resize cropping')
-plt.ylabel('Weighted Accuracy')
+plt.plot(epochs, wacc_train, '--', label='Mean sensitivity on training set')
+plt.plot(epochs, wacc_val, '--', label='Mean sensitivity on validation set')
+plt.title('Mean sensitivity for a ResNet101 with random resize cropping')
+plt.ylabel('Mean sensitivity')
 plt.xlabel('Epochs')
 plt.legend()
 fig2.savefig(r'C:\Users\Bruger\OneDrive\DTU - General engineering\6. Semester\Bachelor\pictures\wacc_plot.png')

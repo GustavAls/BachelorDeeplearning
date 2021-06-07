@@ -38,6 +38,11 @@ def main():
     # Import model config
     model_cfg = importlib.import_module('cfgs.' + sys.argv[2])
     mdlParams_model = model_cfg.init(mdlParams)
+
+    if 'cc_late' in sys.argv[2]:
+        mdlParams['color_augmentation'] = True
+    else:
+        mdlParams['color_augmentation'] = False
     mdlParams.update(mdlParams_model)
 
     # Indicate training
@@ -100,7 +105,7 @@ def main():
         # Check if this fold was already trained
         already_trained = False
         if 'valIndCV' in mdlParams:
-            mdlParams['saveDir'] = mdlParams['saveDirBase'] + '/CVSet' + str(cv)
+            mdlParams['saveDir'] = mdlParams['saveDirBase'] + '/CVSet' + str(cv) + str(cuda_str)
             # mdlParams['saveDir'] = mdlParams['saveDirBase'] + '\CVSet' + str(cv)
             if os.path.isdir(mdlParams['saveDirBase']):
                 if os.path.isdir(mdlParams['saveDir']):
@@ -133,7 +138,7 @@ def main():
             mdlParams['valInd'] = mdlParams['valIndCV']
         # Def current path for saving stuff
         if 'valIndCV' in mdlParams:
-            mdlParams['saveDir'] = mdlParams['saveDirBase'] + '/CVSet' + str(cv)
+            mdlParams['saveDir'] = mdlParams['saveDirBase'] + '/CVSet' + str(cv) + str(cuda_str)
             # mdlParams['saveDir'] = mdlParams['saveDirBase'] + '\CVSet' + str(cv)
         else:
             mdlParams['saveDir'] = mdlParams['saveDirBase']
@@ -228,7 +233,7 @@ def main():
         # Load trained model
         if mdlParams.get('meta_features', None) is not None:
             # Find best checkpoint
-            files = glob(mdlParams['model_load_path'] + '/CVSet' + str(cv) + '/*')
+            files = glob(mdlParams['model_load_path'] + '/CVSet' + str(cv) + str(cuda_str)+ '/*')
             # files = glob(mdlParams['model_load_path'] + '\CVSet' + str(cv) + '\*')
             global_steps = np.zeros([len(files)])
             # print("files",files)
@@ -424,7 +429,7 @@ def main():
             if step >= mdlParams['lowerLRat'] - mdlParams['lowerLRAfter']:
                 modelVars['scheduler'].step()
             modelVars['model'].train()
-            for j, (inputs, labels, indices) in enumerate(modelVars['dataloader_trainInd']):
+            for j, (inputs, labels, indices, _) in enumerate(modelVars['dataloader_trainInd']):
                 # print(indices)
                 # t_load = time.time()
                 # Run optimization
@@ -471,7 +476,7 @@ def main():
                     # Adjust model state
                     modelVars['model'].eval()
                     # Get metrics
-                    loss, accuracy, sensitivity, specificity, conf_matrix, f1, auc, waccuracy, predictions, targets, _ = utils.getErrClassification_mgpu(
+                    loss, accuracy, sensitivity, specificity, conf_matrix, f1, auc, waccuracy, predictions, targets, _, _ = utils.getErrClassification_mgpu(
                         mdlParams, eval_set, modelVars)
                     # Save in mat
                     save_dict['loss'].append(loss)
@@ -554,13 +559,13 @@ def main():
                     print(conf_matrix)
                     # Potentially peek at test error
                     if mdlParams['peak_at_testerr']:
-                        loss, accuracy, sensitivity, specificity, _, f1, _, _, _, _, _ = utils.getErrClassification_mgpu(
+                        loss, accuracy, sensitivity, specificity, _, f1, _, _, _, _, _, _ = utils.getErrClassification_mgpu(
                             mdlParams, 'testInd', modelVars)
                         print("Test loss: ", loss, " Accuracy: ", accuracy, " F1: ", f1)
                         print("Sensitivity: ", sensitivity, "Specificity", specificity)
                     # Potentially print train err
                     if mdlParams['print_trainerr'] and 'train' not in eval_set:
-                        loss, accuracy, sensitivity, specificity, conf_matrix, f1, auc, waccuracy, predictions, targets, _ = utils.getErrClassification_mgpu(
+                        loss, accuracy, sensitivity, specificity, conf_matrix, f1, auc, waccuracy, predictions, targets, _,_ = utils.getErrClassification_mgpu(
                             mdlParams, 'trainInd', modelVars)
                         # Save in mat
                         save_dict_train['loss'].append(loss)

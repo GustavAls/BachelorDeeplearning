@@ -59,15 +59,15 @@ def init(mdlParams_):
     # Divide learning rate by this value
     mdlParams['LRstep'] = 5
     # Maximum number of training iterations
-    mdlParams['training_steps'] = 100 #250
+    mdlParams['training_steps'] = 150 #250
     # Display error every X steps
-    mdlParams['display_step'] = 2
+    mdlParams['display_step'] = 10
     # Scale?
     mdlParams['scale_targets'] = False
     # Peak at test error during training? (generally, dont do this!)
     mdlParams['peak_at_testerr'] = False
     # Print trainerr
-    mdlParams['print_trainerr'] = True
+    mdlParams['print_trainerr'] = False
     # Subtract trainset mean?
     mdlParams['subtract_set_mean'] = False
     mdlParams['setMean'] = np.array([0.0, 0.0, 0.0])
@@ -228,7 +228,7 @@ def init(mdlParams_):
 
     ### Define Indices ###
     # Just divide into 5 equally large sets
-    with open(mdlParams['saveDir'] + 'indices_isic2019.pkl','rb') as f:
+    with open(mdlParams['saveDir'] + 'indices_isic2019_all_data.pkl','rb') as f:
         indices = pickle.load(f)
     mdlParams['trainIndCV'] = indices['trainIndCV']
     mdlParams['valIndCV'] = indices['valIndCV']
